@@ -9,4 +9,4 @@ phases:
   build:
     commands:
       - mkdir /data
-      - cd /solana-snapshot-manager/scrapper && ./scrapper.sh
+      - ./scrapper/scrapper.sh
