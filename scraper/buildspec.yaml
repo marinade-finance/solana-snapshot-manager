@@ -9,5 +9,5 @@ phases:
   build:
     commands:
       - mkdir /data
-      - chmod +x ./scrapper/scrapper.sh
-      - ./scrapper/scrapper.sh
+      - chmod +x ./scraper/scraper.sh
+      - ./scraper/scraper.sh
