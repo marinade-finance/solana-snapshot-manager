@@ -17,8 +17,10 @@ phases:
       - PNPM_HOME="${WORKDIR}/pnpm"
   build:
     commands:
+      - RUNDIR=$(pwd)
       - pnpm install
       - mkdir /data
       - cd /usr/local/bin/
       - ./solana-snapshot-etl "http://api.mainnet-beta.solana.com/snapshot.tar.bz2" --sqlite-out /data/snapshot.db
+      - cd $RUNDIR
       - pnpm run cli parse --sqlite /data/snapshot.db --output /data/snapshot.csv
