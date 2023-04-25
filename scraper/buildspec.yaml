@@ -6,7 +6,9 @@ phases:
       nodejs: latest
     commands:
       - apt update && apt upgrade
-      - apt install curl -y && apt install nodejs npm -y
+      - apt install curl -y
+      - curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -
+      - apt -y install nodejs
       - curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm@7
   pre_build:
     on-failure: ABORT
