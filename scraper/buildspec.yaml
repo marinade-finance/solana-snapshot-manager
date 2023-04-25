@@ -1,12 +1,13 @@
 version: 0.2
 
-pre_build:
-  commands:
-    - echo Logging in to Amazon ECR...
-    - aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin "400405091548.dkr.ecr.eu-central-1.amazonaws.com"
-
 phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin "400405091548.dkr.ecr.eu-central-1.amazonaws.com"
+
   build:
     commands:
       - mkdir /data
-      - /usr/local/bin/solana-snapshot-etl "http://api.mainnet-beta.solana.com/snapshot.tar.bz2" --sqlite-out /data/snapshot.db
+      - cd /usr/local/bin/
+      - ./solana-snapshot-etl "http://api.mainnet-beta.solana.com/snapshot.tar.bz2" --sqlite-out /data/snapshot.db
