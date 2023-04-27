@@ -11,6 +11,8 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
+    "noUncheckedIndexedAccess": true,
+    "lib": ["es2021", "dom"],
   },
   "include": [
     "src/**/*.ts",

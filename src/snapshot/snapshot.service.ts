@@ -36,6 +36,7 @@ export class SnapshotService {
       return null;
     }
 
+    this.logger.log('Holder data fetched', { owner, result });
     return {
       amount: result.amount,
       slot: result.slot,
