@@ -32,6 +32,8 @@ const SOLEND_MSOL_MINT = '3JFC4cB56Er45nWVe29Bhnn5GnwQzSmHVf6eUq9ac91h'
 
 type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 
+const BN_0 = new BN(0)
+
 @Injectable()
 export class ParserService {
   private readonly logger = new Logger(ParserService.name);
@@ -74,12 +76,12 @@ export class ParserService {
   async *parse(sqlite: string): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
-    let totalMsol = new BN(0)
+    let totalMsol = BN_0
 
     for await (const [partialRecords, source] of this.parsedRecords(db)) {
       const sum = Object.values(partialRecords).reduce(
         (sum, amount) => sum.add(amount),
-        new BN(0),
+        BN_0,
       );
       totalMsol = totalMsol.add(sum)
       this.logger.log('Parsed records received', {
@@ -111,12 +113,28 @@ export class ParserService {
       .all([mint, SYSTEM_PROGRAM]) as { owner: string, amount: string, pubkey: string }[];
   }
 
+  private getMintSupply(db: SQLite.Database, mint: string): BN | null {
+    const [record] = db
+      .prepare(`SELECT cast(supply as text) as supply FROM token_mint WHERE pubkey = ?`)
+      .all(mint) as { supply: string }[]
+
+    return record ? new BN(record.supply) : null
+  }
+
+  private getTokenAccountBalance(db: SQLite.Database, pubkey: string): BN | null {
+    const [record] = db
+      .prepare(`SELECT cast(amount as text) as amount FROM token_account WHERE pubkey = ?`)
+      .all(pubkey) as { amount: string }[]
+
+    return record ? new BN(record.amount) : null
+  }
+
   private mSolHolders(db: SQLite.Database): Record<string, BN> {
     const buf: Record<string, BN> = {};
     this.logger.log('Parsing mSOL holders');
     const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, MSOL_MINT)
     tokenAccounts.forEach((tokenAccount) => {
-      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -175,7 +193,7 @@ export class ParserService {
     this.logger.log('Orca whirlpools in DB', { count: whirlpoolSnapshots.length })
 
     for (const whirlpoolSnaphot of whirlpoolSnapshots) {
-      let whirlpoolMsolSum = new BN(0)
+      let whirlpoolMsolSum = BN_0
       this.logger.log('processing Orca whirlpool', { pubkey: whirlpoolSnaphot.pubkey })
       const { mSolAmountSelector } = whirlpools.find((whirlpool) => whirlpool.address === whirlpoolSnaphot.pubkey) ?? {}
       if (!mSolAmountSelector) {
@@ -204,7 +222,7 @@ export class ParserService {
         );
         whirlpoolMsolSum.iadd(mSolAmountSelector(amounts))
         buf[row.owner] =
-          (buf[row.owner] ?? new BN(0)).add(mSolAmountSelector(amounts))
+          (buf[row.owner] ?? BN_0).add(mSolAmountSelector(amounts))
       });
       this.logger.log('Orce whirlpool summed', { sum: mlamportsToMsol(whirlpoolMsolSum) })
     }
@@ -238,32 +256,24 @@ export class ParserService {
     const liquidityPools = await this.getRaydiumLiquidityLpsAndMsolVaults()
 
     for (const { lp, vault } of liquidityPools) {
-      const [vaultAmountRecord] = db
-        .prepare(`SELECT cast(amount as text) as amount FROM token_account WHERE pubkey = ?`)
-        .all(vault) as { amount: string }[]
-      if (!vaultAmountRecord) {
+      const vaultAmount = this.getTokenAccountBalance(db, vault)
+      if (!vaultAmount) {
         this.logger.warn('Raydium liquidity pool mSOL vault missing from DB', { vault, lp })
         continue
       }
 
-      const [lpSupplyRecord] = db
-        .prepare(`SELECT cast(supply as text) as supply FROM token_mint WHERE pubkey = ?`)
-        .all(lp) as { supply: string }[]
-
-      if (!lpSupplyRecord) {
+      const lpSupply = this.getMintSupply(db, lp)
+      if (!lpSupply) {
         this.logger.warn('Raydium liquidity pool LP mint missing from DB', { vault, lp })
         continue
       }
 
       this.logger.log('Processing Raydium liquidity pool', { vault, lp })
 
-      const vaultAmount = vaultAmountRecord.amount
-      const lpSupply = lpSupplyRecord.supply
-
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp)
       tokenAccounts.forEach((tokenAccount) => {
         buf[tokenAccount.owner] =
-          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
+          (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
     }
     return buf;
@@ -282,7 +292,7 @@ export class ParserService {
       )
       .all() as { owner: string, deposit_amount: string }[];
     result.forEach((row) => {
-      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.deposit_amount));
+      buf[row.owner] = (buf[row.owner] ?? BN_0).add(new BN(row.deposit_amount));
     });
     return buf;
   }
@@ -292,7 +302,7 @@ export class ParserService {
     const buf: Record<string, BN> = {};
     const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, TUM_SOL_MINT)
     tokenAccounts.forEach((tokenAccount) => {
-      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -310,32 +320,24 @@ export class ParserService {
     const buf: Record<string, BN> = {};
 
     for (const { lp, vault } of this.getMercurialLpsAndMsolVaults()) {
-      const [vaultAmountRecord] = db
-        .prepare(`SELECT cast(amount as text) as amount FROM token_account WHERE pubkey = ?`)
-        .all(vault) as { amount: string }[]
-      if (!vaultAmountRecord) {
+      const vaultAmount = this.getTokenAccountBalance(db, vault)
+      if (!vaultAmount) {
         this.logger.warn('Mercurial pool mSOL vault missing from DB', { vault, lp })
         continue
       }
 
-      const [lpSupplyRecord] = db
-        .prepare(`SELECT cast(supply as text) as supply FROM token_mint WHERE pubkey = ?`)
-        .all(lp) as { supply: string }[]
-
-      if (!lpSupplyRecord) {
+      const lpSupply = this.getMintSupply(db, lp)
+      if (!lpSupply) {
         this.logger.warn('Mercurial pool LP mint missing from DB', { vault, lp })
         continue
       }
 
       this.logger.log('Processing Mercurial liquidity pool', { vault, lp })
 
-      const vaultAmount = vaultAmountRecord.amount
-      const lpSupply = lpSupplyRecord.supply
-
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp)
       tokenAccounts.forEach((tokenAccount) => {
         buf[tokenAccount.owner] =
-          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
+          (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
     }
 
@@ -351,30 +353,22 @@ export class ParserService {
     ] as const
 
     for (const { lp, vault } of vaults) {
-      const [vaultAmountRecord] = db
-        .prepare(`SELECT cast(amount as text) as amount FROM token_account WHERE pubkey = ?`)
-        .all(vault) as { amount: string }[]
-      if (!vaultAmountRecord) {
+      const vaultAmount = this.getTokenAccountBalance(db, vault)
+      if (!vaultAmount) {
         this.logger.warn('Saber pool mSOL vault missing from DB', { vault, lp })
         continue
       }
 
-      const [lpSupplyRecord] = db
-        .prepare(`SELECT cast(supply as text) as supply FROM token_mint WHERE pubkey = ?`)
-        .all(lp) as { supply: string }[]
-
-      if (!lpSupplyRecord) {
+      const lpSupply = this.getMintSupply(db, lp)
+      if (!lpSupply) {
         this.logger.warn('Seber pool LP mint missing from DB', { vault, lp })
         continue
       }
 
-      const vaultAmount = vaultAmountRecord.amount
-      const lpSupply = lpSupplyRecord.supply
-
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, SABER_MSOL_SUPPLY)
       tokenAccounts.forEach((tokenAccount) => {
         buf[tokenAccount.owner] =
-          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
+          (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
     }
     return buf;
@@ -385,7 +379,7 @@ export class ParserService {
     const buf: Record<string, BN> = {};
     const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, FRIKTION_MINT)
     tokenAccounts.forEach((tokenAccount: any) => {
-      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -395,13 +389,13 @@ export class ParserService {
 
     this.logger.log('Parsing Port');
     const buf: Record<string, BN> = {};
-    const result = db.prepare(`SELECT pubkey, owner, data FROM port`).all();
-    result.forEach((row: any) => {
+    const result = db.prepare(`SELECT pubkey, owner, data FROM port`).all() as { pubkey: string, owner: string, data: Buffer }[];
+    result.forEach((row) => {
       const profile = PortProfileParser(row.data);
       profile.deposits.forEach((deposit) => {
         if (deposit.depositReserve.toBase58() === DEPOSIT_RESERVE) {
           buf[profile.owner.toBase58()] =
-            (buf[profile.owner.toBase58()] ?? new BN(0)).add(new BN(deposit.depositedAmount.toU64().toString()));
+            (buf[profile.owner.toBase58()] ?? BN_0).add(new BN(deposit.depositedAmount.toU64().toString()));
         }
       });
     });
