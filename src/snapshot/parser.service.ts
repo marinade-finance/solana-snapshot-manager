@@ -32,8 +32,6 @@ const SOLEND_MSOL_MINT = '3JFC4cB56Er45nWVe29Bhnn5GnwQzSmHVf6eUq9ac91h'
 
 type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 
-const BN_0 = new BN(0)
-
 @Injectable()
 export class ParserService {
   private readonly logger = new Logger(ParserService.name);
@@ -76,12 +74,12 @@ export class ParserService {
   async *parse(sqlite: string): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
-    let totalMsol = BN_0
+    let totalMsol = new BN(0)
 
     for await (const [partialRecords, source] of this.parsedRecords(db)) {
       const sum = Object.values(partialRecords).reduce(
         (sum, amount) => sum.add(amount),
-        BN_0,
+        new BN(0),
       );
       totalMsol = totalMsol.add(sum)
       this.logger.log('Parsed records received', {
@@ -134,7 +132,7 @@ export class ParserService {
     this.logger.log('Parsing mSOL holders');
     const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, MSOL_MINT)
     tokenAccounts.forEach((tokenAccount) => {
-      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount));
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -193,7 +191,7 @@ export class ParserService {
     this.logger.log('Orca whirlpools in DB', { count: whirlpoolSnapshots.length })
 
     for (const whirlpoolSnaphot of whirlpoolSnapshots) {
-      let whirlpoolMsolSum = BN_0
+      let whirlpoolMsolSum = new BN(0)
       this.logger.log('processing Orca whirlpool', { pubkey: whirlpoolSnaphot.pubkey })
       const { mSolAmountSelector } = whirlpools.find((whirlpool) => whirlpool.address === whirlpoolSnaphot.pubkey) ?? {}
       if (!mSolAmountSelector) {
@@ -222,7 +220,7 @@ export class ParserService {
         );
         whirlpoolMsolSum.iadd(mSolAmountSelector(amounts))
         buf[row.owner] =
-          (buf[row.owner] ?? BN_0).add(mSolAmountSelector(amounts))
+          (buf[row.owner] ?? new BN(0)).add(mSolAmountSelector(amounts))
       });
       this.logger.log('Orce whirlpool summed', { sum: mlamportsToMsol(whirlpoolMsolSum) })
     }
@@ -273,7 +271,7 @@ export class ParserService {
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp)
       tokenAccounts.forEach((tokenAccount) => {
         buf[tokenAccount.owner] =
-          (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
+          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
     }
     return buf;
@@ -292,7 +290,7 @@ export class ParserService {
       )
       .all() as { owner: string, deposit_amount: string }[];
     result.forEach((row) => {
-      buf[row.owner] = (buf[row.owner] ?? BN_0).add(new BN(row.deposit_amount));
+      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.deposit_amount));
     });
     return buf;
   }
@@ -302,7 +300,7 @@ export class ParserService {
     const buf: Record<string, BN> = {};
     const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, TUM_SOL_MINT)
     tokenAccounts.forEach((tokenAccount) => {
-      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount));
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -337,7 +335,7 @@ export class ParserService {
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp)
       tokenAccounts.forEach((tokenAccount) => {
         buf[tokenAccount.owner] =
-          (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
+          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
     }
 
@@ -368,7 +366,7 @@ export class ParserService {
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, SABER_MSOL_SUPPLY)
       tokenAccounts.forEach((tokenAccount) => {
         buf[tokenAccount.owner] =
-          (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
+          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
     }
     return buf;
@@ -379,7 +377,7 @@ export class ParserService {
     const buf: Record<string, BN> = {};
     const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, FRIKTION_MINT)
     tokenAccounts.forEach((tokenAccount: any) => {
-      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? BN_0).add(new BN(tokenAccount.amount));
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -395,7 +393,7 @@ export class ParserService {
       profile.deposits.forEach((deposit) => {
         if (deposit.depositReserve.toBase58() === DEPOSIT_RESERVE) {
           buf[profile.owner.toBase58()] =
-            (buf[profile.owner.toBase58()] ?? BN_0).add(new BN(deposit.depositedAmount.toU64().toString()));
+            (buf[profile.owner.toBase58()] ?? new BN(0)).add(new BN(deposit.depositedAmount.toU64().toString()));
         }
       });
     });
