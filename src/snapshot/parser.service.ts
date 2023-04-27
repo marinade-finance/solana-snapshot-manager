@@ -8,10 +8,6 @@ import { PortProfileParser } from '@port.finance/port-sdk';
 import 'isomorphic-fetch';
 import { mlamportsToMsol } from 'src/util';
 
-const MSOL_DECIMALS = 9;
-const msolToUi = (amount: number) =>
-  (amount / 10 ** MSOL_DECIMALS).toFixed(MSOL_DECIMALS);
-
 const enum Source {
   WALLET = 'WALLET',
   ORCA = 'ORCA',
@@ -75,20 +71,17 @@ export class ParserService {
     }
   }
 
-
-  // Mercurial -> same as raydium need the address of the LP token & the token account which hold mSOL, put the LP token address in account_mints in filters.json and edit the script
-
-  // saber -> same as Mercurial
-
   async *parse(sqlite: string): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
+    let totalMsol = new BN(0)
 
     for await (const [partialRecords, source] of this.parsedRecords(db)) {
       const sum = Object.values(partialRecords).reduce(
         (sum, amount) => sum.add(amount),
         new BN(0),
       );
+      totalMsol = totalMsol.add(sum)
       this.logger.log('Parsed records received', {
         source,
         sum: mlamportsToMsol(sum),
@@ -98,25 +91,32 @@ export class ParserService {
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    this.logger.log('Finished parsing', {
+      totalMsol: mlamportsToMsol(totalMsol),
+    });
 
     db.close();
+  }
+
+  private getSystemOwnedTokenAccountsByMint(db: SQLite.Database, mint: string): { owner: string, amount: string, pubkey: string }[] {
+    return db
+      .prepare(
+        `
+          SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
+          FROM token_account, account
+          WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
+          ORDER BY token_account.amount DESC
+        `,
+      )
+      .all([mint, SYSTEM_PROGRAM]) as { owner: string, amount: string, pubkey: string }[];
   }
 
   private mSolHolders(db: SQLite.Database): Record<string, BN> {
     const buf: Record<string, BN> = {};
     this.logger.log('Parsing mSOL holders');
-    const result = db
-      .prepare(
-        `
-            SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-            FROM token_account, account
-            WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-            ORDER BY token_account.amount desc
-        `,
-      )
-      .all([MSOL_MINT, SYSTEM_PROGRAM]) as { owner: string, amount: string, pubkey: string }[];
-    result.forEach((row) => {
-      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
+    const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, MSOL_MINT)
+    tokenAccounts.forEach((tokenAccount) => {
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -260,18 +260,10 @@ export class ParserService {
       const vaultAmount = vaultAmountRecord.amount
       const lpSupply = lpSupplyRecord.supply
 
-      const result = db
-        .prepare(`
-          SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-          FROM token_account, account
-          WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-          ORDER BY token_account.amount DESC`,
-        )
-        .all([lp, SYSTEM_PROGRAM]) as { owner: string, amount: string, pubkey: string }[];
-
-      result.forEach((row) => {
-        buf[row.owner] =
-          (buf[row.owner] ?? new BN(0)).add(new BN(row.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
+      const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp)
+      tokenAccounts.forEach((tokenAccount) => {
+        buf[tokenAccount.owner] =
+          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
       });
     }
     return buf;
@@ -298,21 +290,9 @@ export class ParserService {
   private tulip(db: SQLite.Database): Record<string, BN> {
     this.logger.log('Parsing Tulip');
     const buf: Record<string, BN> = {};
-    const result = db
-      .prepare(
-        `
-            SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-            FROM token_account, account
-            WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-            ORDER BY token_account.amount DESC
-        `,
-      )
-      .all([
-        TUM_SOL_MINT,
-        SYSTEM_PROGRAM,
-      ]) as { owner: string, amount: string, pubkey: string }[];
-    result.forEach((row) => {
-      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
+    const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, TUM_SOL_MINT)
+    tokenAccounts.forEach((tokenAccount) => {
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -352,18 +332,10 @@ export class ParserService {
       const vaultAmount = vaultAmountRecord.amount
       const lpSupply = lpSupplyRecord.supply
 
-      const result = db
-        .prepare(`
-          SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-          FROM token_account, account
-          WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-          ORDER BY token_account.amount DESC`,
-        )
-        .all([lp, SYSTEM_PROGRAM]) as { owner: string, amount: string, pubkey: string }[]
-
-      result.forEach((row) => {
-        buf[row.owner] =
-          (buf[row.owner] ?? new BN(0)).add(new BN(row.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
+      const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp)
+      tokenAccounts.forEach((tokenAccount) => {
+        buf[tokenAccount.owner] =
+          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
       });
     }
 
@@ -399,22 +371,10 @@ export class ParserService {
       const vaultAmount = vaultAmountRecord.amount
       const lpSupply = lpSupplyRecord.supply
 
-      const result = db
-        .prepare(
-          `
-            SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-            FROM token_account, account
-            WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-            ORDER BY token_account.amount DESC
-        `,
-        )
-        .all([
-          SABER_MSOL_SUPPLY,
-          SYSTEM_PROGRAM,
-        ]) as { owner: string, amount: string, pubkey: string }[]
-      result.forEach((row) => {
-        buf[row.owner] =
-          (buf[row.owner] ?? new BN(0)).add(new BN(row.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
+      const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, SABER_MSOL_SUPPLY)
+      tokenAccounts.forEach((tokenAccount) => {
+        buf[tokenAccount.owner] =
+          (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(new BN(vaultAmount)).div(new BN(lpSupply)));
       });
     }
     return buf;
@@ -423,21 +383,9 @@ export class ParserService {
   private friktion(db: SQLite.Database): Record<string, BN> {
     this.logger.log('Parsing Friktion');
     const buf: Record<string, BN> = {};
-    const result = db
-      .prepare(
-        `
-            SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-            FROM token_account, account
-            WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-            ORDER BY token_account.amount DESC
-        `,
-      )
-      .all([
-        FRIKTION_MINT,
-        SYSTEM_PROGRAM,
-      ]) as { owner: string, amount: string, pubkey: string }[]
-    result.forEach((row: any) => {
-      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
+    const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, FRIKTION_MINT)
+    tokenAccounts.forEach((tokenAccount: any) => {
+      buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount));
     });
     return buf;
   }
@@ -460,44 +408,3 @@ export class ParserService {
     return buf;
   }
 }
-
-/// from SONDER:
-
-// function to add a new protocol if the protocol give a collateral token to the user (ex: Friktion give fcmSOL to the user when staking mSOL)
-// function TOKEN(){
-//     console.info(new Date().toISOString() + " Parsing ProtocolName");
-//     const result = db.prepare(`SELECT token_account.owner, token_account.amount, account.pubkey FROM token_account, account WHERE token_account.mint= ? AND token_account.owner=account.pubkey AND account.owner= ? AND token_account.amount>0 ORDER BY token_account.amount desc`).all(["TOKEN_MINT", "SYSTEM_PROGRAM"]); //TOKEN address & system program address
-//     result.forEach((row) => {
-//         if(dataProtocolName[row.owner] == undefined){
-//             dataProtocolName[row.owner] = row.amount*toUi;
-//         }else{
-//             dataProtocolName[row.owner] += row.amount*toUi;
-//         }
-
-//         if(owners.indexOf(row.owner) == -1){
-//             owners.push(row.owner);
-//         }
-//     });
-// }
-
-// function to add a new protocol if the protocol give a LP token to the user
-// function LP(){
-//     console.info(new Date().toISOString() + " Parsing ProtocolName");
-
-//     const mSOL_tokenB_supply = db.prepare(`SELECT supply FROM token_mint WHERE pubkey= ?`).all("LP_TOKEN_MINT")[0].supply*toUi; //if the LP token have more or less than 9 decimals change the *toUi to Math.pow(10, NUMBER_OF_DECIMALS)
-//     const mSOL_in_liq = db.prepare(`SELECT amount FROM token_account WHERE pubkey= ?`).all("TOKEN_ACCOUNT_WHICH_HOLD_MSOL")[0].amount*toUi; //mSOL-tokenB token account which hold mSOL
-//     const mSOL_per_LP = mSOL_in_liq/mSOL_tokenB_supply;
-
-//     const result = db.prepare(`SELECT token_account.owner, token_account.amount, account.pubkey FROM token_account, account WHERE token_account.mint= ? AND token_account.owner=account.pubkey AND account.owner= ? AND token_account.amount>0 ORDER BY token_account.amount desc`).all(["LP_TOKEN_MINT", "SYSTEM_PROGRAM"]); //mSOL-tokenB & system program
-//     result.forEach((row) => {
-//         if(dataProtocolName[row.owner] == undefined){
-//             dataProtocolName[row.owner] = row.amount*toUi*mSOL_per_LP;
-//         }else{
-//             dataProtocolName[row.owner] += row.amount*toUi*mSOL_per_LP;
-//         }
-
-//         if(owners.indexOf(row.owner) == -1){
-//             owners.push(row.owner);
-//         }
-//     });
-// }
