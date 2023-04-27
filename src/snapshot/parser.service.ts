@@ -308,7 +308,7 @@ export class ParserService {
   private getMercurialLpsAndMsolVaults() {
     return [
       { lp: 'B2uEs9zjnz222hfUaUuRgesryUEYwy3JGuWe31sE9gsG', vault: '3ifhD4Ywaa8aBZAaQSqYgN4Q1kaFArioLU8uumJMaqkE' },
-      { lp: '7HqhfUqig7kekN8FbJCtQ36VgdXKriZWQ62rTve9ZmQ', vault: 'EWy2hPdVT4uGrYokx65nAyn2GFBv7bUYA2pFPY96pw7Y' },
+      { lp: '7HqhfUqig7kekN8FbJCtQ36VgdXKriZWQ62rTve9ZmQ', vault: 'GM48qFn8rnqhyNMrBHyPJgUVwXQ1JvMbcu3b9zkThW9L' },
     ] as const
   }
 
