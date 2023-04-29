@@ -2,17 +2,19 @@ import { Injectable, Logger } from '@nestjs/common';
 import SQLite from 'better-sqlite3';
 import * as whirlpool from '@orca-so/whirlpools-sdk';
 import orca from '@orca-so/common-sdk';
+import { AmmV3, ApiAmmV3Pools, LiquidityMath, PoolInfoLayout, PositionInfoLayout, SqrtPriceMath } from '@raydium-io/raydium-sdk'
 import BN from 'bn.js';
-
-import { PortProfileParser } from '@port.finance/port-sdk';
+import fs from 'fs'
+import { Collateral, DEFAULT_PORT_LENDING_MARKET, Environment, MintId, ObligationLayout, Port, PortProfileParser, PORT_PROFILE_DATA_SIZE, ReserveId } from '@port.finance/port-sdk';
 import 'isomorphic-fetch';
 import { mlamportsToMsol } from 'src/util';
+import { Connection, PublicKey } from '@solana/web3.js';
 
 const enum Source {
   WALLET = 'WALLET',
   ORCA = 'ORCA',
-  ORCA_AQUAFARMS = 'ORCA_AQUAFARMS',
   RAYDIUM_V2 = 'RAYDIUM_V2',
+  RAYDIUM_V3 = 'RAYDIUM_V3',
   SOLEND = 'SOLEND',
   TULIP = 'TULIP',
   MERCURIAL = 'MERCURIAL',
@@ -41,14 +43,14 @@ export class ParserService {
   ): AsyncGenerator<[Record<string, BN>, Source]> {
     yield [this.mSolHolders(db), Source.WALLET];
     yield [await this.orcaWhrilpools(db), Source.ORCA];
-    yield [await this.raydiumV2(db), Source.RAYDIUM_V2]; // production check, filters check
+    yield [await this.raydiumV2(db), Source.RAYDIUM_V2];
+    yield [await this.raydiumV3(db), Source.RAYDIUM_V3];
     yield [this.solend(db), Source.SOLEND];
     yield [this.tulip(db), Source.TULIP];
-    yield [this.mercurial(db), Source.MERCURIAL]; // production check, filter check
-    yield [this.saber(db), Source.SABER]; // production check, filters check
+    yield [this.mercurial(db), Source.MERCURIAL];
+    yield [this.saber(db), Source.SABER];
     yield [this.friktion(db), Source.FRIKTION];
     yield [this.port(db), Source.PORT];
-    // raydium AMMs
   }
 
   async getFilters() {
@@ -74,14 +76,19 @@ export class ParserService {
   async *parse(sqlite: string): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
-    let totalMsol = new BN(0)
+
+    let mSolParsedAmount = new BN(0)
+    const mSolSupply = this.getMintSupply(db, MSOL_MINT)
+    if (!mSolSupply) {
+      throw new Error('Failed to get mSOL supply!')
+    }
 
     for await (const [partialRecords, source] of this.parsedRecords(db)) {
       const sum = Object.values(partialRecords).reduce(
         (sum, amount) => sum.add(amount),
         new BN(0),
       );
-      totalMsol = totalMsol.add(sum)
+      mSolParsedAmount = mSolParsedAmount.add(sum)
       this.logger.log('Parsed records received', {
         source,
         sum: mlamportsToMsol(sum),
@@ -92,7 +99,9 @@ export class ParserService {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     this.logger.log('Finished parsing', {
-      totalMsol: mlamportsToMsol(totalMsol),
+      mSolParsedAmount: mlamportsToMsol(mSolParsedAmount),
+      mSolSupply: mlamportsToMsol(mSolSupply),
+      missingMSol: mlamportsToMsol(mSolSupply.sub(mSolParsedAmount)),
     });
 
     db.close();
@@ -248,7 +257,7 @@ export class ParserService {
   }
 
   private async raydiumV2(db: SQLite.Database): Promise<Record<string, BN>> {
-    this.logger.log(new Date().toISOString() + ' Parsing Raydium V2');
+    this.logger.log('Parsing Raydium V2');
     const buf: Record<string, BN> = {};
 
     const liquidityPools = await this.getRaydiumLiquidityLpsAndMsolVaults()
@@ -273,6 +282,63 @@ export class ParserService {
         buf[tokenAccount.owner] =
           (buf[tokenAccount.owner] ?? new BN(0)).add(new BN(tokenAccount.amount).mul(vaultAmount).div(lpSupply));
       });
+    }
+    return buf;
+  }
+
+  private async getRaydiumV3LiquidityPools(): Promise<ApiAmmV3Pools['data']> {
+    const response = await fetch('https://api.raydium.io/v2/ammV3/ammPools')
+    const { data } = await response.json()
+    return data
+  }
+
+  private async raydiumV3(db: SQLite.Database): Promise<Record<string, BN>> {
+    this.logger.log('Parsing Raydium V3');
+    const buf: Record<string, BN> = {};
+
+    const amms = db
+      .prepare(
+        `
+          SELECT pubkey, mint1, mint2, vault1, vault2, liquidity, sqrt_price_x64
+          FROM raydium_amms
+          WHERE mint1 = ? OR mint2 = ?
+      `,
+      )
+      .all(MSOL_MINT, MSOL_MINT) as { pubkey: string, mint1: string, mint2: string, vault1: string, vault2: string, liquidity: string, sqrt_price_x64: string }[]
+
+    for (const amm of amms) {
+      const mSolVault = amm.mint1 === MSOL_MINT ? amm.vault1 : amm.vault2
+      const mSolVaultBalance = this.getTokenAccountBalance(db, mSolVault)
+      this.logger.log("Raydium AMMv3", { pubkey: amm.pubkey, mSol: mSolVaultBalance ? mlamportsToMsol(mSolVaultBalance) : null })
+
+      if (!mSolVaultBalance) {
+        this.logger.warn('Vault not found!')
+        continue
+      }
+
+      const positions = db
+        .prepare(
+          `
+            SELECT
+              raydium_amm_positions.tick_lower_index,
+              raydium_amm_positions.tick_upper_index,
+              raydium_amm_positions.liquidity,
+              token_account.owner
+            FROM raydium_amm_positions, token_account
+            WHERE raydium_amm_positions.nft_mint = token_account.mint AND raydium_amm_positions.pool_id = ?
+        `,
+        ).all(amm.pubkey) as { tick_lower_index: string, tick_upper_index: string, liquidity: string, owner: string }[]
+
+      let total = new BN(0)
+      for (const position of positions) {
+        const sqrtPriceX64A = SqrtPriceMath.getSqrtPriceX64FromTick(Number(position.tick_lower_index))
+        const sqrtPriceX64B = SqrtPriceMath.getSqrtPriceX64FromTick(Number(position.tick_upper_index))
+        const amounts = LiquidityMath.getAmountsFromLiquidity(new BN(amm.sqrt_price_x64), sqrtPriceX64A, sqrtPriceX64B, new BN(position.liquidity), false)
+        const mSolAmount = amm.mint1 === MSOL_MINT ? amounts.amountA : amounts.amountB
+        buf[position.owner] = (buf[position.owner] ?? new BN(0)).add(mSolAmount);
+        total = total.add(mSolAmount)
+      }
+      this.logger.log("calculated total amount", { total: mlamportsToMsol(total), positions: positions.length })
     }
     return buf;
   }
@@ -383,15 +449,17 @@ export class ParserService {
   }
 
   private port(db: SQLite.Database): Record<string, BN> {
-    const DEPOSIT_RESERVE = '9gDF5W94RowoDugxT8cM29cX8pKKQitTp2uYVrarBSQ7'
-
+    const MSOL_DEPOSIT_RESERVE = '9gDF5W94RowoDugxT8cM29cX8pKKQitTp2uYVrarBSQ7'
     this.logger.log('Parsing Port');
     const buf: Record<string, BN> = {};
     const result = db.prepare(`SELECT pubkey, owner, data FROM port`).all() as { pubkey: string, owner: string, data: Buffer }[];
     result.forEach((row) => {
       const profile = PortProfileParser(row.data);
+      if (profile.lendingMarket.toBase58() !== DEFAULT_PORT_LENDING_MARKET.toBase58() || row.data.length !== PORT_PROFILE_DATA_SIZE || row.owner !== Environment.forMainNet().getLendingProgramPk().toBase58()) {
+        return
+      }
       profile.deposits.forEach((deposit) => {
-        if (deposit.depositReserve.toBase58() === DEPOSIT_RESERVE) {
+        if (deposit.depositReserve.toBase58() === MSOL_DEPOSIT_RESERVE) {
           buf[profile.owner.toBase58()] =
             (buf[profile.owner.toBase58()] ?? new BN(0)).add(new BN(deposit.depositedAmount.toU64().toString()));
         }
