@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class MsolBalanceDto {
   @IsNumber()
   @ApiProperty()
-  amount: number;
+  amount: string;
 
   @IsNumber()
   @ApiProperty()
