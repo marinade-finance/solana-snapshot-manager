@@ -1,5 +1,9 @@
 version: 0.2
 
+env:
+  parameter-store:
+    POSTGRES_URL: /marinade/solana-snapshot-manager/db/prod
+
 phases:
   install:
     runtime-versions:
@@ -22,5 +26,3 @@ phases:
       - pnpm run cli -- filters --json-output filters.json
       - /usr/local/bin/solana-snapshot-etl "http://api.mainnet-beta.solana.com/snapshot.tar.bz2" --sqlite-out /data/snapshot.db
       - pnpm run cli parse --sqlite /data/snapshot.db --output /data/snapshot.csv --slot "$SLOT"
-  env:
-    POSTGRES_URL: ssm:/marinade/solana-snapshot-manager/db/prod
