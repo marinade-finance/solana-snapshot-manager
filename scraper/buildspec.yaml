@@ -3,6 +3,7 @@ version: 0.2
 env:
   variables:
     TAG: b680ae6
+    REGFION: eu-central-1
   parameter-store:
     POSTGRES_URL: /marinade/solana-snapshot-manager/db/prod
 
@@ -19,8 +20,8 @@ phases:
       - PNPM_HOME="${WORKDIR}/pnpm"
       - mkdir /data
       - ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-      - $(aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.your-region.amazonaws.com")
-      - docker pull "$ACCOUNT_ID.dkr.ecr.your-region.amazonaws.com/marinade.finance/snapshot-etl:$TAG"
+      - $(aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com")
+      - docker pull "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG"
   build:
     commands:
       - "SLOT=$(curl -sfLS http://api.mainnet-beta.solana.com -X POST -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getEpochInfo\"}' | jq .result.absoluteSlot)"
