@@ -3,11 +3,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { RedocModule, RedocOptions } from 'nestjs-redoc';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger } from './logger';
+import { Log4jsLogger } from '@nestx-log4js/core';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { logger: new Logger() });
+  const app = await NestFactory.create(AppModule, { logger: false });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useLogger(app.get(Log4jsLogger));
   const options = new DocumentBuilder()
     .setTitle('Marinade Snapshot API')
     .setDescription(

@@ -8,7 +8,8 @@ $ pnpm install
 
 ## Running the CLI
 ```bash
-pnpm run cli parse --sqlite <input-sqlite> --output <output-csv>
+pnpm run cli -- filters --json-output filters.json
+pnpm run cli -- parse --sqlite <input-sqlite> --csv-output <output-csv>
 ```
 
 ## Running the app

@@ -16,19 +16,20 @@ export const PSQL_POOL_PROVIDER = 'PSQL_POOL_PROVIDER';
 export const poolFactory = {
   provide: PSQL_POOL_PROVIDER,
   useFactory: async (configService: ConfigService) => {
-    return await createPool(configService.postgresUrl, {
-      typeParsers: [
-        ...createTypeParserPreset(),
-        {
-          name: 'timestamptz',
-          parse: (timestamp): Date => new Date(timestamp),
-        },
-        // {
-        //   name: 'numeric',
-        //   parse: (numeric): BN => new BN(numeric),
-        // },
-      ],
-    });
+    // return await createPool(configService.postgresUrl, {
+    //   typeParsers: [
+    //     ...createTypeParserPreset(),
+    //     {
+    //       name: 'timestamptz',
+    //       parse: (timestamp): Date => new Date(timestamp),
+    //     },
+    //     // {
+    //     //   name: 'numeric',
+    //     //   parse: (numeric): BN => new BN(numeric),
+    //     // },
+    //   ],
+    // });
+    return {} as DatabasePool
   },
   inject: [ConfigService],
 };
