@@ -17,7 +17,7 @@ phases:
       - mkdir /data
   build:
     commands:
-      - SLOT=$(curl -sfLS http://api.mainnet-beta.solana.com -X POST -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"getEpochInfo"}' | jq .result.absoluteSlot)
+      - "SLOT=$(curl -sfLS http://api.mainnet-beta.solana.com -X POST -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getEpochInfo\"}' | jq .result.absoluteSlot)"
       - pnpm install --frozen-lockfile
       - pnpm run cli -- filters --json-output filters.json
       - /usr/local/bin/solana-snapshot-etl "http://api.mainnet-beta.solana.com/snapshot.tar.bz2" --sqlite-out /data/snapshot.db
