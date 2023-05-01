@@ -1,0 +1,32 @@
+version: 0.2
+
+env:
+  variables:
+    TAG: b680ae6
+    REGION: eu-central-1
+  parameter-store:
+    POSTGRES_URL: /marinade/solana-snapshot-manager/db/prod
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: latest
+    commands:
+      - apt install curl -y
+      - curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm@7
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - PNPM_HOME="${WORKDIR}/pnpm"
+      - mkdir /data
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+      - aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+      - docker pull "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG"
+  build:
+    commands:
+      - "SLOT=$(curl -sfLS http://api.mainnet-beta.solana.com -X POST -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getEpochInfo\"}' | jq .result.absoluteSlot)"
+      - pnpm install --frozen-lockfile
+      - pnpm run cli -- filters --json-output filters.json
+      - docker run --rm --volume "/data:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG" /usr/local/bin/solana-snapshot-etl http://api.mainnet-beta.solana.com/snapshot.tar.bz2 --sqlite-out /data/snapshot.db
+      - ./index-db.bash /data/snapshot.db
+      - pnpm run cli -- parse --sqlite /data/snapshot.db --csv-output /data/snapshot.csv --slot "$SLOT"
