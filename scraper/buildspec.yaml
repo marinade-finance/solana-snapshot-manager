@@ -12,7 +12,7 @@ phases:
     runtime-versions:
       nodejs: latest
     commands:
-      - apt install curl -y
+      - apt install curl sqlite3 -y
       - curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm@7
   pre_build:
     on-failure: ABORT
