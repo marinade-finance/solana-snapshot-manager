@@ -26,7 +26,7 @@ const InternalLoggerFactory = () => {
 
               return `${msg}${errSerialized}${ctxSerialized}`.replace(
                 /\n/g,
-                '\\n'
+                '\\n',
               );
             },
             // context: config.context,
@@ -35,22 +35,22 @@ const InternalLoggerFactory = () => {
       },
     },
     categories: {
-      default: {appenders: ['app'], level: 'DEBUG'},
+      default: { appenders: ['app'], level: 'DEBUG' },
     },
   });
   return log4js.getLogger();
 };
 
 export class Logger implements LoggerService {
-  private readonly logger = InternalLoggerFactory()
+  private readonly logger = InternalLoggerFactory();
 
   log(...args: any[]) {
-    this.logger.log('INFO', ...args)
+    this.logger.log('INFO', ...args);
   }
   error(...args: any[]) {
-    this.logger.log('ERROR', ...args)
+    this.logger.log('ERROR', ...args);
   }
   warn(...args: any[]) {
-    this.logger.log('WARN', ...args)
+    this.logger.log('WARN', ...args);
   }
 }

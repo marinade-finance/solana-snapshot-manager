@@ -30,7 +30,6 @@ export class SnapshotService {
             INNER JOIN last_snapshot ON msol_holders.snapshot_id = last_snapshot.snapshot_id
             WHERE owner = ${owner}
         `);
-
     if (!result) {
       this.logger.warn('Holder not found!', { owner });
       return null;

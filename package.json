@@ -30,8 +30,6 @@
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/swagger": "^6.3.0",
-    "@nestx-log4js/core": "^1.5.1",
-    "@orca-so/common-sdk": "^0.1.12",
     "@orca-so/whirlpools-sdk": "^0.8.2",
     "@port.finance/port-sdk": "^0.2.69",
     "@raydium-io/raydium-sdk": "1.3.0-beta.15",

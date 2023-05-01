@@ -28,7 +28,7 @@ export class SnapshotController {
       pubkey,
     );
     if (!result) {
-      throw new HttpException('Forbidden', HttpStatus.NOT_FOUND);
+      throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
     }
 
     return result;
