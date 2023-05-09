@@ -31,7 +31,7 @@ export class VotesService {
             last_snapshot AS (
                 SELECT *
                 FROM snapshots
-                WHERE snapshot_id = 10000 -- (SELECT MAX(snapshot_id) FROM snapshots)
+                WHERE snapshot_id = (SELECT MAX(snapshot_id) FROM snapshots)
             )
             SELECT
               last_snapshot.created_at as msol_snapshot_created_at,
