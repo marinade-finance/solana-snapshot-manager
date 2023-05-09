@@ -6,6 +6,7 @@ env:
     REGION: eu-central-1
   parameter-store:
     POSTGRES_URL: /marinade/solana-snapshot-manager/db/prod
+    RPC_URL: /marinade/rpc/triton/mainnet-beta
 
 phases:
   install:
