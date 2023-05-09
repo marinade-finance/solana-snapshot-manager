@@ -1,6 +1,8 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@marinade.finance/directed-stake-sdk': ^0.0.4
+  '@nestjs/cache-manager': ^1.0.0
   '@nestjs/cli': ^9.0.0
   '@nestjs/common': ^9.0.0
   '@nestjs/core': ^9.0.0
@@ -24,6 +26,7 @@ specifiers:
   '@typescript-eslint/parser': ^5.0.0
   better-sqlite3: ^8.3.0
   bn.js: ^5.2.1
+  cache-manager: ^5.2.1
   class-transformer: ^0.5.1
   class-validator: ^0.14.0
   csv: ^6.2.10
@@ -52,7 +55,9 @@ specifiers:
   zod: ^3.21.4
 
 dependencies:
-  '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+  '@marinade.finance/directed-stake-sdk': 0.0.4_emuueda7hfgskd4utlizpueme4
+  '@nestjs/cache-manager': 1.0.0_pnaix5jcj254ingijxseouuv4q
+  '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
   '@nestjs/core': 9.4.0_qfvkcqqlilywzuwwu2xqitbr3m
   '@nestjs/platform-express': 9.4.0_gqkob5jndcfeb3wjw72wbdwyne
   '@nestjs/swagger': 6.3.0_wgmggry273v4dignukmrfwr7na
@@ -62,6 +67,7 @@ dependencies:
   '@solana/web3.js': 1.75.0
   better-sqlite3: 8.3.0
   bn.js: 5.2.1
+  cache-manager: 5.2.1
   class-transformer: 0.5.1
   class-validator: 0.14.0
   csv: 6.2.10
@@ -538,6 +544,43 @@ packages:
     dev: true
     optional: true
 
+  /@coral-xyz/anchor/0.27.0:
+    resolution: {integrity: sha512-+P/vPdORawvg3A9Wj02iquxb4T0C5m4P6aZBVYysKl4Amk+r6aMPZkUhilBkD6E4Nuxnoajv3CFykUfkGE0n5g==}
+    engines: {node: '>=11'}
+    dependencies:
+      '@coral-xyz/borsh': 0.27.0_@solana+web3.js@1.75.0
+      '@solana/web3.js': 1.75.0
+      base64-js: 1.5.1
+      bn.js: 5.2.1
+      bs58: 4.0.1
+      buffer-layout: 1.2.2
+      camelcase: 6.3.0
+      cross-fetch: 3.1.5
+      crypto-hash: 1.3.0
+      eventemitter3: 4.0.7
+      js-sha256: 0.9.0
+      pako: 2.1.0
+      snake-case: 3.0.4
+      superstruct: 0.15.5
+      toml: 3.0.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
+    dev: false
+
+  /@coral-xyz/borsh/0.27.0_@solana+web3.js@1.75.0:
+    resolution: {integrity: sha512-tJKzhLukghTWPLy+n8K8iJKgBq1yLT/AxaNd10yJrX8mI56ao5+OFAKAqW/h0i79KCvb4BK0VGO5ECmmolFz9A==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@solana/web3.js': ^1.68.0
+    dependencies:
+      '@solana/web3.js': 1.75.0
+      bn.js: 5.2.1
+      buffer-layout: 1.2.2
+    dev: false
+
   /@cspotcode/source-map-support/0.8.1:
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
@@ -959,6 +1002,25 @@ packages:
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
 
+  /@marinade.finance/directed-stake-sdk/0.0.4_emuueda7hfgskd4utlizpueme4:
+    resolution: {integrity: sha512-5WTBDRg8hbCHS54wUUhPUuXj9JiQE3Bc1+nmDI3JivQPHu7VsDaPB3w1SHRh0bfARnZQg9oKg8s6jVwNiScCsQ==}
+    engines: {node: '>10'}
+    peerDependencies:
+      '@solana/web3.js': ^1.74.0
+      bn.js: ^5.2.1
+      jsbi: ^4.3.0
+    dependencies:
+      '@coral-xyz/anchor': 0.27.0
+      '@solana/web3.js': 1.75.0
+      bn.js: 5.2.1
+      bs58: 5.0.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /@metaplex-foundation/mpl-core/0.0.2:
     resolution: {integrity: sha512-UUJ4BlYiWdDegAWmjsNQiNehwYU3QfSFWs3sv4VX0J6/ZrQ28zqosGhQ+I2ZCTEy216finJ82sZWNjuwSWCYyQ==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
@@ -983,6 +1045,20 @@ packages:
       - encoding
       - supports-color
       - utf-8-validate
+    dev: false
+
+  /@nestjs/cache-manager/1.0.0_pnaix5jcj254ingijxseouuv4q:
+    resolution: {integrity: sha512-XMNdgsj3H+Ng/SYwFl13vRGNFA3e5Obk8LNwIuHLVSocnK2exReAWtscxEjQhoBc4FW4jAYOgU/U+mt18Q9T0g==}
+    peerDependencies:
+      '@nestjs/common': ^9.0.0
+      cache-manager: <=5
+      reflect-metadata: ^0.1.12
+      rxjs: ^7.0.0
+    dependencies:
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
+      cache-manager: 5.2.1
+      reflect-metadata: 0.1.13
+      rxjs: 7.8.0
     dev: false
 
   /@nestjs/cli/9.3.0:
@@ -1019,7 +1095,7 @@ packages:
       - webpack-cli
     dev: true
 
-  /@nestjs/common/9.4.0_welcnyot5bzd5wa2aovbkxpi4i:
+  /@nestjs/common/9.4.0_3gxeobzg7dgrq6xqptevvug4ee:
     resolution: {integrity: sha512-RUcVAQsEF4WPrmzFXEOUfZnPwrLTe1UVlzXTlSyfqfqbdWDPKDGlIPVelBLfc5/+RRUQ0I5iE4+CQvpCmkqldw==}
     peerDependencies:
       cache-manager: <=5
@@ -1035,6 +1111,7 @@ packages:
       class-validator:
         optional: true
     dependencies:
+      cache-manager: 5.2.1
       class-transformer: 0.5.1
       class-validator: 0.14.0
       iterare: 1.2.1
@@ -1061,7 +1138,7 @@ packages:
       '@nestjs/websockets':
         optional: true
     dependencies:
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       '@nestjs/platform-express': 9.4.0_gqkob5jndcfeb3wjw72wbdwyne
       '@nuxtjs/opencollective': 0.3.2
       fast-safe-stringify: 2.1.1
@@ -1087,7 +1164,7 @@ packages:
       class-validator:
         optional: true
     dependencies:
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       class-transformer: 0.5.1
       class-validator: 0.14.0
       reflect-metadata: 0.1.13
@@ -1099,7 +1176,7 @@ packages:
       '@nestjs/common': ^9.0.0
       '@nestjs/core': ^9.0.0
     dependencies:
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       '@nestjs/core': 9.4.0_qfvkcqqlilywzuwwu2xqitbr3m
       body-parser: 1.20.2
       cors: 2.8.5
@@ -1154,7 +1231,7 @@ packages:
       class-validator:
         optional: true
     dependencies:
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       '@nestjs/core': 9.4.0_qfvkcqqlilywzuwwu2xqitbr3m
       '@nestjs/mapped-types': 1.2.2_jbpjjfk2f2t4q57zuyaqjyvrsi
       class-transformer: 0.5.1
@@ -1179,7 +1256,7 @@ packages:
       '@nestjs/platform-express':
         optional: true
     dependencies:
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       '@nestjs/core': 9.4.0_qfvkcqqlilywzuwwu2xqitbr3m
       '@nestjs/platform-express': 9.4.0_gqkob5jndcfeb3wjw72wbdwyne
       tslib: 2.5.0
@@ -2523,6 +2600,10 @@ packages:
       safe-buffer: 5.2.1
     dev: false
 
+  /base-x/4.0.0:
+    resolution: {integrity: sha512-FuwxlW4H5kh37X/oW59pwTzzTKRzfrrQwhmyspRM7swOEZcHtDZSCt45U6oKgtuFE+WYPblePMVIPR4RZrh/hw==}
+    dev: false
+
   /base64-js/1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
@@ -2676,6 +2757,12 @@ packages:
       base-x: 3.0.9
     dev: false
 
+  /bs58/5.0.0:
+    resolution: {integrity: sha512-r+ihvQJvahgYT50JD05dyJNKlmmSlMoOGwn1lCcEzanPglg7TxYjioQUYehQ9mAR/+hOSd2jRc/Z2y5UxBymvQ==}
+    dependencies:
+      base-x: 4.0.0
+    dev: false
+
   /bser/2.1.1:
     resolution: {integrity: sha512-gQxTNE/GAfIIrmHLUE3oJyp5FO6HRBfhjnw4/wMmA63ZGDJnWBmgY/lyQBpnDUkGmAhbSe39tx2d/iTOAfglwQ==}
     dependencies:
@@ -2738,6 +2825,12 @@ packages:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
     engines: {node: '>= 0.8'}
 
+  /cache-manager/5.2.1:
+    resolution: {integrity: sha512-qYHx0DlM0mepUqXkpDg83K1dYEXOinq9+sYdHxs1c5LQjR1MPgm34im+JVtsy9+uoeE2T1JLzJSAB+nV4IH5dQ==}
+    dependencies:
+      lodash.clonedeep: 4.5.0
+      lru-cache: 9.1.1
+
   /call-bind/1.0.2:
     resolution: {integrity: sha512-7O+FbCihrB5WGbFYesctwmTKae6rOiIzmz1icreWJ+0aA7LJfuqhEso2T9ncpcFtzMQtzXf2QGGueWJGTYsqrA==}
     dependencies:
@@ -2764,7 +2857,6 @@ packages:
   /camelcase/6.3.0:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
-    dev: true
 
   /caniuse-lite/1.0.30001474:
     resolution: {integrity: sha512-iaIZ8gVrWfemh5DG3T9/YqarVZoYf0r188IjaGwx68j4Pf0SGY6CQkmJUIE+NZHkkecQGohzXmBGEwWDr9aM3Q==}
@@ -5055,6 +5147,9 @@ packages:
       p-locate: 5.0.0
     dev: true
 
+  /lodash.clonedeep/4.5.0:
+    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
+
   /lodash.memoize/4.1.2:
     resolution: {integrity: sha512-t7j+NzmgnQzTAYXcsHYLgimltOV1MXHtlOWf6GjL9Kj8GK5FInw5JotxvbOs+IvV1/Dzo04/fCGfLVs7aXb4Ag==}
     dev: true
@@ -5116,6 +5211,10 @@ packages:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
     engines: {node: '>=12'}
     dev: true
+
+  /lru-cache/9.1.1:
+    resolution: {integrity: sha512-65/Jky17UwSb0BuB9V+MyDpsOtXKmYwzhyl+cOa9XUiI4uV2Ouy/2voFP3+al0BjZbJgMBD8FojMpAf+Z+qn4A==}
+    engines: {node: 14 || >=16.14}
 
   /macos-release/2.5.1:
     resolution: {integrity: sha512-DXqXhEM7gW59OjZO8NIjBCz9AQ1BEMrfiOAl4AYByHCtVHRF4KoGNO8mqQeM8lRCtQe/UnJ4imO/d2HdkKsd+A==}
@@ -5345,7 +5444,7 @@ packages:
       rxjs: 7.8.0
     dependencies:
       '@golevelup/nestjs-discovery': 3.0.0
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       '@nestjs/core': 9.4.0_qfvkcqqlilywzuwwu2xqitbr3m
       commander: 10.0.0
       cosmiconfig: 8.1.0
@@ -5363,7 +5462,7 @@ packages:
       reflect-metadata: ^0.1.12
     dependencies:
       '@hapi/joi': 17.1.1
-      '@nestjs/common': 9.4.0_welcnyot5bzd5wa2aovbkxpi4i
+      '@nestjs/common': 9.4.0_3gxeobzg7dgrq6xqptevvug4ee
       '@nestjs/core': 9.4.0_qfvkcqqlilywzuwwu2xqitbr3m
       '@nestjs/swagger': 6.3.0_wgmggry273v4dignukmrfwr7na
       express-basic-auth: 1.2.1

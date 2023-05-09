@@ -10,6 +10,7 @@ $ pnpm install
 ```bash
 pnpm run cli -- filters --json-output filters.json
 pnpm run cli -- parse --sqlite <input-sqlite> --csv-output <output-csv>
+pnpm run cli -- record-msol-votes
 ```
 
 ## Running the app

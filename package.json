@@ -26,6 +26,8 @@
     "posttest": "npm run lint"
   },
   "dependencies": {
+    "@marinade.finance/directed-stake-sdk": "^0.0.4",
+    "@nestjs/cache-manager": "^1.0.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
@@ -36,6 +38,7 @@
     "@solana/web3.js": "^1.75.0",
     "better-sqlite3": "^8.3.0",
     "bn.js": "^5.2.1",
+    "cache-manager": "^5.2.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "csv": "^6.2.10",

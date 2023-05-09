@@ -14,4 +14,5 @@ const getEnvVar = (key: string) => {
 @Injectable()
 export class ConfigService {
   postgresUrl = getEnvVar('POSTGRES_URL');
+  rpcUrl = getEnvVar('RPC_URL');
 }
