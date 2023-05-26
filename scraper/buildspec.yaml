@@ -26,10 +26,11 @@ phases:
       - docker pull "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG"
   build:
     commands:
-      - "SLOT=$(curl -sfLS http://api.mainnet-beta.solana.com -X POST -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getEpochInfo\"}' | jq .result.absoluteSlot)"
+      - wget http://api.mainnet-beta.solana.com/snapshot.tar.bz2
+      - "SLOT=$(tar -tf snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)"
       - pnpm install --frozen-lockfile
       - pnpm run cli -- filters --json-output filters.json
-      - docker run --rm --volume "/data:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG" /usr/local/bin/solana-snapshot-etl http://api.mainnet-beta.solana.com/snapshot.tar.bz2 --sqlite-out /data/snapshot.db
+      - docker run --rm --volume "/data:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG" /usr/local/bin/solana-snapshot-etl snapshot.tar.bz2 --sqlite-out /data/snapshot.db
       - ./index-db.bash /data/snapshot.db
       - pnpm run cli -- parse --sqlite /data/snapshot.db --csv-output /data/snapshot.csv --slot "$SLOT"
       - pnpm run cli -- record-msol-votes
