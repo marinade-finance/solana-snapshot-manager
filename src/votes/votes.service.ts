@@ -20,7 +20,7 @@ export class VotesService {
   ) {}
 
   async getVoteRecordsFromChain(): Promise<DirectedStakeVoteRecord[]> {
-    this.logger.log('Fetching mSOL votes from the chain...');
+    this.logger.log('Fetching votes from the chain...');
     const sdk = new DirectedStakeSdk({
       connection: this.solanaServive.connection,
       wallet: Keypair.generate(),
@@ -55,7 +55,7 @@ export class VotesService {
             INNER JOIN last_batch ON msol_votes.batch_id = last_batch.batch_id
         `);
 
-    this.logger.log('Vote recrods fetched', { count: result.length });
+    this.logger.log('Vote records fetched', { count: result.length });
 
     if (result.length === 0) {
       return null;
@@ -73,7 +73,7 @@ export class VotesService {
   }
 
   async getLatestveMNDEVotes(): Promise<VeMNDEVoteRecordsDto | null> {
-    this.logger.log('Fetching mSOL votes from DB...');
+    this.logger.log('Fetching veMNDE votes from DB...');
     const result = await this.rdsService.pool.any(sql.unsafe`
             WITH last_batch AS (
                 SELECT *
@@ -97,7 +97,7 @@ export class VotesService {
             INNER JOIN last_batch ON msol_votes.batch_id = last_batch.batch_id
         `);
 
-    this.logger.log('Vote recrods fetched', { count: result.length });
+    this.logger.log('Vote records fetched', { count: result.length });
 
     if (result.length === 0) {
       return null;
