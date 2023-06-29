@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sql } from 'slonik';
 import { batches, RdsService } from 'src/rds/rds.service';
-import { MsolBalanceDto } from './snapshot.dto';
+import { MsolBalanceDto, VeMNDEBalanceDto } from './snapshot.dto';
 
 export type HolderRecord = {
   holder: string;
   amount: number;
   sources: string[];
   amounts: number[];
+};
+
+export type VeMNDEHolderRecord = {
+  holder: string;
+  amount: number;
 };
 
 @Injectable()
@@ -28,6 +33,33 @@ export class SnapshotService {
             SELECT *
             FROM msol_holders
             INNER JOIN last_snapshot ON msol_holders.snapshot_id = last_snapshot.snapshot_id
+            WHERE owner = ${owner}
+        `);
+    if (!result) {
+      this.logger.warn('Holder not found!', { owner });
+      return null;
+    }
+
+    this.logger.log('Holder data fetched', { owner, result });
+    return {
+      amount: result.amount,
+      slot: result.slot,
+      createdAt: result.created_at,
+    };
+  }
+
+  async getVeMNDEBalanceFromLastSnaphot(
+    owner: string,
+  ): Promise<VeMNDEBalanceDto | null> {
+    const result = await this.rdsService.pool.maybeOne(sql.unsafe`
+            WITH last_snapshot AS (
+                SELECT *
+                FROM snapshots
+                WHERE snapshot_id = (SELECT MAX(snapshot_id) FROM snapshots)
+            )
+            SELECT *
+            FROM vemnde_holders
+            INNER JOIN last_snapshot ON vemnde_holders.snapshot_id = last_snapshot.snapshot_id
             WHERE owner = ${owner}
         `);
     if (!result) {
@@ -70,7 +102,33 @@ export class SnapshotService {
                   })),
                 )})
                 AS t ("snapshotId" integer, holder text, amount numeric, sources text[], amounts numeric[])`);
-      this.logger.log('Batch inserted', { snapshotId, len: batch.length });
+      this.logger.log('mSOL Holders Batch inserted', {
+        snapshotId,
+        len: batch.length,
+      });
+    }
+  }
+  async storeSnapshotVeMNDERecords(
+    snapshotId: number,
+    holders: VeMNDEHolderRecord[],
+  ): Promise<void> {
+    const BATCH_SIZE = 1000;
+    for (const batch of batches(holders, BATCH_SIZE)) {
+      await this.rdsService.pool.query(sql.unsafe`
+                INSERT INTO vemnde_holders (snapshot_id, owner, amount)
+                SELECT *
+                FROM jsonb_to_recordset(${sql.jsonb(
+                  batch.map(({ holder, amount }) => ({
+                    snapshotId,
+                    holder,
+                    amount,
+                  })),
+                )})
+                AS t ("snapshotId" integer, holder text, amount numeric)`);
+      this.logger.log('VeMNDE Holders Batch inserted', {
+        snapshotId,
+        len: batch.length,
+      });
     }
   }
 }
