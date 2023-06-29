@@ -15,6 +15,8 @@ import {
 } from '@port.finance/port-sdk';
 import 'isomorphic-fetch';
 import { mlamportsToMsol, mndelamportsToMNDE } from 'src/util';
+import { SolanaService } from 'src/solana/solana.service';
+import { PublicKey } from '@solana/web3.js';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -32,6 +34,7 @@ const enum Source {
 type SnapshotRecord = { pubkey: string; amount: string; source: Source };
 type VeMNDESnapshotRecord = { pubkey: string; amount: string };
 
+const VSR_PROGRAM = '5zgEgPbWKsAAnLPjSM56ZsbLPfVM6nUzh3u45tCnm97D';
 const SYSTEM_PROGRAM = '11111111111111111111111111111111';
 const MSOL_MINT = 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So';
 const TUM_SOL_MINT = '8cn7JcYVjDZesLa3RTt3NXne4WcDw9PdUneQWuByehwW';
@@ -44,6 +47,8 @@ type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 @Injectable()
 export class ParserService {
   private readonly logger = new Logger(ParserService.name);
+
+  constructor(private readonly solanaService: SolanaService) {}
 
   async *parsedRecords(
     db: SQLite.Database,
@@ -74,6 +79,13 @@ export class ParserService {
     const mercurialMints = this.getMercurialLpsAndMsolVaults().map(
       ({ lp }) => lp,
     );
+    const vsr_registrar_info =
+      await this.solanaService.connection.getAccountInfo(
+        new PublicKey(VSR_PROGRAM),
+      );
+    if (!vsr_registrar_info) {
+      throw new Error('Failed to get VSR Registrar Data!');
+    }
 
     return {
       account_owners: SYSTEM_PROGRAM,
@@ -89,6 +101,7 @@ export class ParserService {
       whirlpool_pool_address: whirlpools
         .map(({ address }) => address)
         .join(','),
+      vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
     };
   }
 
