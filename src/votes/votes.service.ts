@@ -9,6 +9,7 @@ import { Keypair } from '@solana/web3.js';
 import { batches, RdsService } from 'src/rds/rds.service';
 import { sql } from 'slonik';
 import { MSolVoteRecordsDto, VeMNDEVoteRecordsDto } from './votes.dto';
+import { readJsonFile } from 'src/util';
 
 @Injectable()
 export class VotesService {
@@ -111,6 +112,17 @@ export class VotesService {
         tokenOwner: owner,
         validatorVoteAccount: vote_account,
       })),
+    };
+  }
+
+  async getSnapshotVeMNDEVotes(): Promise<VeMNDEVoteRecordsDto | null> {
+    this.logger.log('Fetching veMNDE votes from snapshot file...');
+    const data: VeMNDEVoteRecordsDto = await readJsonFile('./votes-mnde.json');
+
+    return {
+      veMNDESnapshotCreatedAt: data.veMNDESnapshotCreatedAt,
+      voteRecordsCreatedAt: data.veMNDESnapshotCreatedAt || '',
+      records: data.records,
     };
   }
 

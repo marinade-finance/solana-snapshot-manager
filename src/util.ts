@@ -1,4 +1,6 @@
 import BN from 'bn.js';
+import path from 'path';
+import * as fs from 'fs';
 
 const MSOL_DECIMALS = 9;
 const MNDE_DECIMALS = 9;
@@ -19,4 +21,10 @@ export function mndelamportsToMNDE(bn: BN): string {
 
 export function msolToMlamports(amount: number): BN {
   return new BN(amount.toFixed(MSOL_DECIMALS).replace('.', ''));
+}
+
+export async function readJsonFile(filename: string): Promise<any> {
+  const filePath = path.resolve(__dirname, filename);
+  const data = await fs.promises.readFile(filePath, 'utf8');
+  return JSON.parse(data);
 }
