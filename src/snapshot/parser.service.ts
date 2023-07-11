@@ -14,9 +14,7 @@ import {
   PORT_PROFILE_DATA_SIZE,
 } from '@port.finance/port-sdk';
 import 'isomorphic-fetch';
-import { mlamportsToMsol, mndelamportsToMNDE } from 'src/util';
-import { SolanaService } from 'src/solana/solana.service';
-import { PublicKey } from '@solana/web3.js';
+import { mlamportsToMsol } from 'src/util';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -32,9 +30,7 @@ const enum Source {
 }
 
 type SnapshotRecord = { pubkey: string; amount: string; source: Source };
-type VeMNDESnapshotRecord = { pubkey: string; amount: string };
 
-const VSR_PROGRAM = '5zgEgPbWKsAAnLPjSM56ZsbLPfVM6nUzh3u45tCnm97D';
 const SYSTEM_PROGRAM = '11111111111111111111111111111111';
 const MSOL_MINT = 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So';
 const TUM_SOL_MINT = '8cn7JcYVjDZesLa3RTt3NXne4WcDw9PdUneQWuByehwW';
@@ -47,8 +43,6 @@ type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 @Injectable()
 export class ParserService {
   private readonly logger = new Logger(ParserService.name);
-
-  constructor(private readonly solanaService: SolanaService) {}
 
   async *parsedRecords(
     db: SQLite.Database,
@@ -65,12 +59,6 @@ export class ParserService {
     yield [this.port(db), Source.PORT];
   }
 
-  async *parseVeMNDERecords(
-    db: SQLite.Database,
-  ): AsyncGenerator<Record<string, BN>> {
-    yield this.vemnde(db);
-  }
-
   async getFilters() {
     const whirlpools = await this.getOrcaWhirlpools();
     const raydiumLiquidityPools = (
@@ -79,13 +67,6 @@ export class ParserService {
     const mercurialMints = this.getMercurialLpsAndMsolVaults().map(
       ({ lp }) => lp,
     );
-    const vsr_registrar_info =
-      await this.solanaService.connection.getAccountInfo(
-        new PublicKey(VSR_PROGRAM),
-      );
-    if (!vsr_registrar_info) {
-      throw new Error('Failed to get VSR Registrar Data!');
-    }
 
     return {
       account_owners: SYSTEM_PROGRAM,
@@ -101,7 +82,6 @@ export class ParserService {
       whirlpool_pool_address: whirlpools
         .map(({ address }) => address)
         .join(','),
-      vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
     };
   }
 
@@ -137,16 +117,6 @@ export class ParserService {
     });
 
     db.close();
-  }
-
-  async *parseVeMNDE(sqlite: string): AsyncGenerator<VeMNDESnapshotRecord> {
-    this.logger.log('Opening the SQLite DB', { sqlite });
-    const db = SQLite(sqlite, { readonly: true });
-    for await (const record of this.parseVeMNDERecords(db)) {
-      for (const [pubkey, amount] of Object.entries(record)) {
-        yield { pubkey, amount: mndelamportsToMNDE(amount) };
-      }
-    }
   }
 
   private getSystemOwnedTokenAccountsByMint(
@@ -638,27 +608,6 @@ export class ParserService {
           ).add(new BN(deposit.depositedAmount.toU64().toString()));
         }
       });
-    });
-    return buf;
-  }
-
-  private vemnde(db: SQLite.Database): Record<string, BN> {
-    this.logger.log('Parsing VeMNDE');
-    const buf: Record<string, BN> = {};
-    const result = db
-      .prepare(
-        `SELECT pubkey, voter_authority, voting_power FROM vemnde_accounts`,
-      )
-      .all() as {
-      pubkey: string;
-      voter_authority: string;
-      voting_power: string;
-    }[];
-    result.forEach((row) => {
-      const voting_power = new BN(row.voting_power);
-      buf[row.voter_authority] = (buf[row.voter_authority] ?? new BN(0)).add(
-        voting_power,
-      );
     });
     return buf;
   }

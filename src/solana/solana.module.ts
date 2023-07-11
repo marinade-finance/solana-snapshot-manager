@@ -5,6 +5,6 @@ import { SolanaService } from './solana.service';
 @Module({
   imports: [ConfigModule],
   providers: [SolanaService],
-  exports: [SolanaService],
+  exports: [SolanaService]
 })
 export class SolanaModule {}

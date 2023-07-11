@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
+import { CacheModule } from '@nestjs/cache-manager'
 import { VotesService } from './votes.service';
 import { VotesController } from './votes.controller';
 import { SolanaModule } from 'src/solana/solana.module';
@@ -10,6 +10,6 @@ import { RdsModule } from 'src/rds/rds.module';
   imports: [SolanaModule, ConfigModule, RdsModule, CacheModule.register()],
   providers: [VotesService],
   controllers: [VotesController],
-  exports: [VotesService],
+  exports: [VotesService]
 })
 export class VotesModule {}
