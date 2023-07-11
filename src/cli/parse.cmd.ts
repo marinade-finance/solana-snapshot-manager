@@ -3,11 +3,7 @@ import { Logger } from '@nestjs/common';
 import { ParserService } from '../snapshot/parser.service';
 import * as fs from 'fs';
 import * as csv from 'csv';
-import {
-  HolderRecord,
-  SnapshotService,
-  VeMNDEHolderRecord,
-} from 'src/snapshot/snapshot.service';
+import { HolderRecord, SnapshotService } from 'src/snapshot/snapshot.service';
 
 type ParseCommandOptions = {
   slot?: number;
@@ -30,11 +26,6 @@ const defaultHolderRecord = (holder: string): HolderRecord => ({
   sources: [],
   amounts: [],
 });
-const defaultVeMNDEHolderRecord = (holder: string): VeMNDEHolderRecord => ({
-  holder,
-  amount: 0,
-});
-
 const updateRecord = (
   holderRecord: HolderRecord,
   amount: number,
@@ -44,14 +35,6 @@ const updateRecord = (
   amount: holderRecord.amount + amount,
   sources: [...holderRecord.sources, source],
   amounts: [...holderRecord.amounts, amount],
-});
-
-const updateVeMNDERecord = (
-  holderRecord: VeMNDEHolderRecord,
-  amount: number,
-): VeMNDEHolderRecord => ({
-  holder: holderRecord.holder,
-  amount: holderRecord.amount + amount,
 });
 
 @Command({
@@ -74,7 +57,6 @@ export class ParseCommand extends CommandRunner {
   ): Promise<void> {
     const csvWriter = csvOutput ? prepareCsvWriter(csvOutput) : null;
     const holders: Record<string, HolderRecord> = {};
-    const veMNDEHolders: Record<string, VeMNDEHolderRecord> = {};
 
     for await (const parsedRecord of this.parserService.parse(sqlite)) {
       csvWriter?.write(parsedRecord);
@@ -88,18 +70,6 @@ export class ParseCommand extends CommandRunner {
       );
     }
 
-    for await (const parsedVeMNDERecord of this.parserService.parseVeMNDE(
-      sqlite,
-    )) {
-      const holderRecord =
-        veMNDEHolders[parsedVeMNDERecord.pubkey] ??
-        defaultVeMNDEHolderRecord(parsedVeMNDERecord.pubkey);
-      veMNDEHolders[parsedVeMNDERecord.pubkey] = updateVeMNDERecord(
-        holderRecord,
-        Number(parsedVeMNDERecord.amount),
-      );
-    }
-
     csvWriter?.on('finish', () =>
       this.logger.log('Parsed records written to the CSV', { csv: csvOutput }),
     );
@@ -107,10 +77,6 @@ export class ParseCommand extends CommandRunner {
 
     if (slot) {
       const snapshotId = await this.snapshotService.createSnapshot(slot);
-      await this.snapshotService.storeSnapshotVeMNDERecords(
-        snapshotId,
-        Object.values(veMNDEHolders),
-      );
       await this.snapshotService.storeSnapshotRecords(
         snapshotId,
         Object.values(holders),

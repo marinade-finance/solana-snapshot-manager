@@ -16,16 +16,6 @@ CREATE TABLE msol_holders (
     CONSTRAINT fk_snapshot FOREIGN KEY (snapshot_id) REFERENCES snapshots(snapshot_id)
 );
 
-CREATE TABLE vemnde_holders (
-    snapshot_id SERIAL NOT NULL,
-    owner TEXT NOT NULL,
-
-    amount NUMERIC NOT NULL,
-
-    PRIMARY KEY (snapshot_id, owner),
-    CONSTRAINT fk_snapshot FOREIGN KEY (snapshot_id) REFERENCES snapshots(snapshot_id)
-);
-
 CREATE TABLE msol_votes_batches (
     batch_id SERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
