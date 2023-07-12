@@ -6,7 +6,7 @@ import {
   Param,
   UseInterceptors,
 } from '@nestjs/common';
-import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MsolBalanceDto } from './snapshot.dto';
 import { SnapshotService } from './snapshot.service';

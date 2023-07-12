@@ -9,15 +9,13 @@ import { VotesService } from 'src/votes/votes.service';
 export class RecordMSolVotesCommand extends CommandRunner {
   private readonly logger = new Logger(RecordMSolVotesCommand.name);
 
-  constructor(
-    private readonly votesService: VotesService,
-  ) {
+  constructor(private readonly votesService: VotesService) {
     super();
   }
 
   async run(): Promise<void> {
-    const batchId = await this.votesService.createMSolBatch()
-    const voteRecords = await this.votesService.getVoteRecordsFromChain()
-    await this.votesService.storeVoteRecords(batchId, voteRecords)
+    const batchId = await this.votesService.createMSolBatch();
+    const voteRecords = await this.votesService.getVoteRecordsFromChain();
+    await this.votesService.storeVoteRecords(batchId, voteRecords);
   }
 }
