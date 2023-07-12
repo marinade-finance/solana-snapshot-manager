@@ -103,7 +103,6 @@ export class VotesService {
                 last_snapshot ls ON DATE(ls.created_at) = DATE(vb.created_at)
             INNER JOIN 
                 msol_holders mh ON mh.snapshot_id = ls.snapshot_id AND mh.owner = mv.owner
-            WHERE mv.vote_account = '9xEFsHZt2mbuGQjtVGABxpeQiNeDvj54pfsJrrrUUev6'
             ORDER BY 
                 vb.batch_id DESC;
         `);
