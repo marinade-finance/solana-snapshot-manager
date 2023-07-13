@@ -11,7 +11,7 @@ import { sql } from 'slonik';
 import {
   MSolVoteRecordDto,
   MSolVoteRecordsDto,
-  MSolVoteSnapshots,
+  MSolVoteSnapshotsDto,
 } from './votes.dto';
 
 @Injectable()
@@ -76,8 +76,20 @@ export class VotesService {
     };
   }
 
-  async getMSolVotes(): Promise<MSolVoteSnapshots | null> {
+  async getMSolVotes(
+    startDate: string,
+    endDate: string,
+  ): Promise<MSolVoteSnapshotsDto | null> {
     this.logger.log('Fetching all mSOL votes from DB...');
+
+    if (!startDate) {
+      startDate = new Date(0).toISOString();
+    }
+
+    if (!endDate) {
+      endDate = new Date(Date.now()).toISOString();
+    }
+
     const result = await this.rdsService.pool.any(sql.unsafe`
             WITH last_snapshot AS (
                 SELECT snapshot_id, created_at
@@ -103,9 +115,9 @@ export class VotesService {
                 last_snapshot ls ON DATE(ls.created_at) = DATE(vb.created_at)
             INNER JOIN 
                 msol_holders mh ON mh.snapshot_id = ls.snapshot_id AND mh.owner = mv.owner
-            ORDER BY 
-                vb.batch_id DESC;
-        `);
+            WHERE vb.created_at >= ${startDate} AND vb.created_at <= ${endDate}
+            ORDER BY vb.batch_id DESC
+  `);
 
     this.logger.log('All vote records fetched', { count: result.length });
 
@@ -148,7 +160,7 @@ export class VotesService {
       return recordsDto;
     });
 
-    const snapshotsDto = new MSolVoteSnapshots();
+    const snapshotsDto = new MSolVoteSnapshotsDto();
     snapshotsDto.snapshots = snapshots;
 
     return snapshotsDto;

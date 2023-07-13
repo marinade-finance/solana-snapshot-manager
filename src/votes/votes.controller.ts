@@ -3,12 +3,18 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { MSolVoteRecordsDto, MSolVoteSnapshots } from './votes.dto';
+import {
+  MSolVoteRecordsDto,
+  MSolVoteSnapshotsDto,
+  SnapshotsIntervalDto,
+} from './votes.dto';
 import { VotesService } from './votes.service';
+import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 
 @Controller('v1/votes/msol/')
 @ApiTags('Votes')
@@ -39,12 +45,25 @@ export class VotesController {
   @ApiResponse({
     status: 200,
     description: 'The records are successfully fetched.',
-    type: MSolVoteSnapshots,
+    type: MSolVoteSnapshotsDto,
   })
-  @CacheKey('mSOL all votes')
+  @UseInterceptors(HttpDateCacheInterceptor)
   @CacheTTL(60e3)
-  async getMsolBalance(): Promise<MSolVoteSnapshots> {
-    const result = await this.votesService.getMSolVotes();
+  async getMsolBalance(
+    @Query() query: SnapshotsIntervalDto,
+  ): Promise<MSolVoteSnapshotsDto> {
+    if (query.startDate && query.endDate) {
+      if (Date.parse(query.startDate) > Date.parse(query.endDate)) {
+        throw new HttpException(
+          'startDate is later than endDate',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+    const result = await this.votesService.getMSolVotes(
+      query.startDate,
+      query.endDate,
+    );
     if (!result) {
       throw new HttpException('No records available', HttpStatus.NOT_FOUND);
     }
