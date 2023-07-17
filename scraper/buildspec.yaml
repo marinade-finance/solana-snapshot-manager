@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    TAG: f9410f4
+    TAG: 8997bf8
     REGION: eu-central-1
   parameter-store:
     POSTGRES_URL: /marinade/solana-snapshot-manager/db/prod
