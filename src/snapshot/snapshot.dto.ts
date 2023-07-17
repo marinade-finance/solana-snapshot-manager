@@ -14,3 +14,17 @@ export class MsolBalanceDto {
   @ApiProperty()
   createdAt: string;
 }
+
+export class VeMNDEBalanceDto {
+  @IsNumber()
+  @ApiProperty()
+  amount: string;
+
+  @IsNumber()
+  @ApiProperty()
+  slot: number;
+
+  @IsDateString()
+  @ApiProperty()
+  createdAt: string;
+}
