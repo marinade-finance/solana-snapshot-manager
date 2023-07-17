@@ -22,6 +22,21 @@ export class MSolVoteRecordDto {
   amount: string | null;
 }
 
+export class VeMNDEVoteRecordDto {
+  @IsString()
+  @ApiProperty()
+  tokenOwner: string;
+
+  @IsString()
+  @ApiProperty()
+  validatorVoteAccount: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ type: String, nullable: true })
+  amount: string | null;
+}
+
 export class MSolVoteRecordsDto {
   @ValidateNested()
   @ApiProperty({
@@ -57,4 +72,22 @@ export class MSolVoteSnapshotsDto {
     isArray: true,
   })
   snapshots: MSolVoteRecordsDto[];
+}
+
+export class VeMNDEVoteRecordsDto {
+  @ValidateNested()
+  @ApiProperty({
+    type: VeMNDEVoteRecordDto,
+    isArray: true,
+  })
+  records: VeMNDEVoteRecordDto[];
+
+  @IsDateString()
+  @IsOptional()
+  @ApiProperty({ type: String, nullable: true })
+  veMNDESnapshotCreatedAt: string | null;
+
+  @IsDateString()
+  @ApiProperty()
+  voteRecordsCreatedAt: string;
 }

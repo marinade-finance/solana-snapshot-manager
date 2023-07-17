@@ -8,21 +8,17 @@ import {
 } from '@nestjs/common';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import {
-  MSolVoteRecordsDto,
-  MSolVoteSnapshotsDto,
-  SnapshotsIntervalDto,
-} from './votes.dto';
+import { MSolVoteRecordsDto, VeMNDEVoteRecordsDto,MSolVoteSnapshotsDto, SnapshotsIntervalDto, } from './votes.dto';
 import { VotesService } from './votes.service';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 
-@Controller('v1/votes/msol/')
+@Controller('v1/votes')
 @ApiTags('Votes')
 @UseInterceptors(CacheInterceptor)
 export class VotesController {
   constructor(private readonly votesService: VotesService) {}
 
-  @Get('/latest')
+  @Get('/msol/latest')
   @ApiOperation({ summary: 'Fetch mSOL votes' })
   @ApiResponse({
     status: 200,
@@ -31,7 +27,7 @@ export class VotesController {
   })
   @CacheKey('mSOL votes')
   @CacheTTL(60e3)
-  async getMsolBalanceFromLastSnaphot(): Promise<MSolVoteRecordsDto> {
+  async getMsolVotesFromLastSnaphot(): Promise<MSolVoteRecordsDto> {
     const result = await this.votesService.getLatestMSolVotes();
     if (!result) {
       throw new HttpException('No records available', HttpStatus.NOT_FOUND);
@@ -40,7 +36,7 @@ export class VotesController {
     return result;
   }
 
-  @Get('/all')
+  @Get('/msol/all')
   @ApiOperation({ summary: 'Fetch all mSOL votes' })
   @ApiResponse({
     status: 200,
@@ -64,6 +60,19 @@ export class VotesController {
       query.startDate,
       query.endDate,
     );
+  }
+
+  @Get('/vemnde/latest')
+  @ApiOperation({ summary: 'Fetch veMNDE votes' })
+  @ApiResponse({
+    status: 200,
+    description: 'The records are successfully fetched.',
+    type: VeMNDEVoteRecordsDto,
+  })
+  @CacheKey('veMNDE voting power')
+  @CacheTTL(60e3)
+  async getVeMNDEVotesFromLastSnaphot(): Promise<VeMNDEVoteRecordsDto> {
+    const result = await this.votesService.getLatestveMNDEVotes();
     if (!result) {
       throw new HttpException('No records available', HttpStatus.NOT_FOUND);
     }

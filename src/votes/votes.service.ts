@@ -12,6 +12,7 @@ import {
   MSolVoteRecordDto,
   MSolVoteRecordsDto,
   MSolVoteSnapshotsDto,
+  VeMNDEVoteRecordsDto
 } from './votes.dto';
 
 @Injectable()
@@ -24,7 +25,7 @@ export class VotesService {
   ) {}
 
   async getVoteRecordsFromChain(): Promise<DirectedStakeVoteRecord[]> {
-    this.logger.log('Fetching mSOL votes from the chain...');
+    this.logger.log('Fetching votes from the chain...');
     const sdk = new DirectedStakeSdk({
       connection: this.solanaServive.connection,
       wallet: Keypair.generate(),
@@ -59,7 +60,7 @@ export class VotesService {
             INNER JOIN last_batch ON msol_votes.batch_id = last_batch.batch_id
         `);
 
-    this.logger.log('Vote recrods fetched', { count: result.length });
+    this.logger.log('Vote records fetched', { count: result.length });
 
     if (result.length === 0) {
       return null;
@@ -164,6 +165,48 @@ export class VotesService {
     snapshotsDto.snapshots = snapshots;
 
     return snapshotsDto;
+  }
+
+  async getLatestveMNDEVotes(): Promise<VeMNDEVoteRecordsDto | null> {
+    this.logger.log('Fetching veMNDE votes from DB...');
+    const result = await this.rdsService.pool.any(sql.unsafe`
+            WITH last_batch AS (
+                SELECT *
+                FROM msol_votes_batches
+                WHERE batch_id = (SELECT MAX(batch_id) FROM msol_votes_batches)
+            ),
+            last_snapshot AS (
+                SELECT *
+                FROM snapshots
+                WHERE snapshot_id = (SELECT MAX(snapshot_id) FROM snapshots)
+            )
+            SELECT
+              last_snapshot.created_at as vemnde_snapshot_created_at,
+              last_batch.created_at as vote_records_created_at,
+              amount,
+              msol_votes.owner as owner,
+              msol_votes.vote_account as vote_account
+            FROM vemnde_holders
+            INNER JOIN last_snapshot ON vemnde_holders.snapshot_id = last_snapshot.snapshot_id
+            RIGHT JOIN msol_votes ON msol_votes.owner = vemnde_holders.owner
+            INNER JOIN last_batch ON msol_votes.batch_id = last_batch.batch_id
+        `);
+
+    this.logger.log('Vote records fetched', { count: result.length });
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    return {
+      veMNDESnapshotCreatedAt: result[0].msol_snapshot_created_at,
+      voteRecordsCreatedAt: result[0].vote_records_created_at,
+      records: result.map(({ amount, owner, vote_account }) => ({
+        amount,
+        tokenOwner: owner,
+        validatorVoteAccount: vote_account,
+      })),
+    };
   }
 
   async createMSolBatch(): Promise<number> {
