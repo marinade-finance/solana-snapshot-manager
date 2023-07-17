@@ -8,7 +8,12 @@ import {
 } from '@nestjs/common';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { MSolVoteRecordsDto, VeMNDEVoteRecordsDto,MSolVoteSnapshotsDto, SnapshotsIntervalDto, } from './votes.dto';
+import {
+  MSolVoteRecordsDto,
+  VeMNDEVoteRecordsDto,
+  MSolVoteSnapshotsDto,
+  SnapshotsIntervalDto,
+} from './votes.dto';
 import { VotesService } from './votes.service';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 
@@ -56,10 +61,22 @@ export class VotesController {
         );
       }
     }
+    if (!query.startDate && !query.endDate) {
+      throw new HttpException(
+        'No startDate or endDate provided',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const result = await this.votesService.getMSolVotes(
       query.startDate,
       query.endDate,
     );
+
+    if (!result) {
+      throw new HttpException('No records available', HttpStatus.NOT_FOUND);
+    }
+    return result;
   }
 
   @Get('/vemnde/latest')

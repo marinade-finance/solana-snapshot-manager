@@ -12,7 +12,7 @@ import {
   MSolVoteRecordDto,
   MSolVoteRecordsDto,
   MSolVoteSnapshotsDto,
-  VeMNDEVoteRecordsDto
+  VeMNDEVoteRecordsDto,
 } from './votes.dto';
 
 @Injectable()
