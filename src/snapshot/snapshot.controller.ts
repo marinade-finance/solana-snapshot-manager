@@ -6,9 +6,9 @@ import {
   Param,
   UseInterceptors,
 } from '@nestjs/common';
-import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { MsolBalanceDto } from './snapshot.dto';
+import { MsolBalanceDto, VeMNDEBalanceDto } from './snapshot.dto';
 import { SnapshotService } from './snapshot.service';
 
 @Controller('v1/snapshot/latest')
@@ -29,6 +29,27 @@ export class SnapshotController {
     @Param('pubkey') pubkey: string,
   ): Promise<MsolBalanceDto> {
     const result = await this.snapshotService.getMsolBalanceFromLastSnaphot(
+      pubkey,
+    );
+    if (!result) {
+      throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
+    }
+
+    return result;
+  }
+
+  @Get('/vemnde/:pubkey')
+  @ApiOperation({ summary: 'Fetch VeMNDE balance for a pubkey' })
+  @ApiResponse({
+    status: 200,
+    description: 'The record was successfully fetched.',
+    type: VeMNDEBalanceDto,
+  })
+  @CacheTTL(60e3)
+  async getVeMNDEBalanceFromLastSnaphot(
+    @Param('pubkey') pubkey: string,
+  ): Promise<VeMNDEBalanceDto> {
+    const result = await this.snapshotService.getVeMNDEBalanceFromLastSnaphot(
       pubkey,
     );
     if (!result) {
