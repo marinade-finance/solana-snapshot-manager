@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sql } from 'slonik';
 import { batches, RdsService } from 'src/rds/rds.service';
-import { MsolBalanceDto, VeMNDEBalanceDto } from './snapshot.dto';
+import {
+  MsolBalanceDto,
+  NativeStakeBalanceDto,
+  VeMNDEBalanceDto,
+} from './snapshot.dto';
 
 export type HolderRecord = {
   holder: string;
@@ -15,11 +19,52 @@ export type VeMNDEHolderRecord = {
   amount: number;
 };
 
+export type NativeStakerRecord = {
+  withdraw_authority: string;
+  amount: number;
+};
+
 @Injectable()
 export class SnapshotService {
   private readonly logger = new Logger(SnapshotService.name);
 
   constructor(private readonly rdsService: RdsService) {}
+
+  async getNativeStakeBalanceFromLastSnaphot(
+    startDate: string,
+    endDate: string,
+    withdraw_authority: string,
+  ): Promise<NativeStakeBalanceDto[] | null> {
+    if (!startDate) {
+      startDate = new Date(0).toISOString();
+    }
+
+    if (!endDate) {
+      endDate = new Date(Date.now()).toISOString();
+    }
+    const balances: NativeStakeBalanceDto[] = [];
+    const result = await this.rdsService.pool.maybeOne(sql.unsafe`
+          SELECT *
+          FROM native_stake_accounts
+          LEFT JOIN snapshots ON snapshots.snapshot_id = native_stake_accounts.snapshot_id
+          WHERE created_at >= ${startDate} AND created_at <= ${endDate} AND withdraw_authority = ${withdraw_authority}
+        `);
+    if (!result) {
+      this.logger.warn('Staker not found!', { withdraw_authority });
+      return null;
+    }
+
+    for (const balance of result) {
+      balances.push({
+        amount: balance.amount,
+        slot: balance.slot,
+        createdAt: balance.created_at,
+      });
+    }
+
+    this.logger.log('Staker data fetched', { withdraw_authority, result });
+    return balances;
+  }
 
   async getMsolBalanceFromLastSnaphot(
     owner: string,
@@ -82,7 +127,6 @@ export class SnapshotService {
 
     return snapshotId;
   }
-
   async storeSnapshotRecords(
     snapshotId: number,
     holders: HolderRecord[],
@@ -126,6 +170,29 @@ export class SnapshotService {
                 )})
                 AS t ("snapshotId" integer, holder text, amount numeric)`);
       this.logger.log('VeMNDE Holders Batch inserted', {
+        snapshotId,
+        len: batch.length,
+      });
+    }
+  }
+  async storeSnapshotNativeStakerRecords(
+    snapshotId: number,
+    holders: NativeStakerRecord[],
+  ): Promise<void> {
+    const BATCH_SIZE = 1000;
+    for (const batch of batches(holders, BATCH_SIZE)) {
+      await this.rdsService.pool.query(sql.unsafe`
+                INSERT INTO native_stake_accounts (snapshot_id, withdraw_authority, amount)
+                SELECT *
+                FROM jsonb_to_recordset(${sql.jsonb(
+                  batch.map(({ withdraw_authority, amount }) => ({
+                    snapshotId,
+                    withdraw_authority,
+                    amount,
+                  })),
+                )})
+                AS t ("snapshotId" integer, withdraw_authority text, amount numeric)`);
+      this.logger.log('Native Stakers Batch inserted', {
         snapshotId,
         len: batch.length,
       });

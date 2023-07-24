@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as csv from 'csv';
 import {
   HolderRecord,
+  NativeStakerRecord,
   SnapshotService,
   VeMNDEHolderRecord,
 } from 'src/snapshot/snapshot.service';
@@ -35,6 +36,13 @@ const defaultVeMNDEHolderRecord = (holder: string): VeMNDEHolderRecord => ({
   amount: 0,
 });
 
+const defaultNativeStakerRecord = (
+  withdraw_authority: string,
+): NativeStakerRecord => ({
+  withdraw_authority,
+  amount: 0,
+});
+
 const updateRecord = (
   holderRecord: HolderRecord,
   amount: number,
@@ -52,6 +60,14 @@ const updateVeMNDERecord = (
 ): VeMNDEHolderRecord => ({
   holder: holderRecord.holder,
   amount: holderRecord.amount + amount,
+});
+
+const updateNativeStakerRecord = (
+  stakerRecord: NativeStakerRecord,
+  amount: number,
+): NativeStakerRecord => ({
+  withdraw_authority: stakerRecord.withdraw_authority,
+  amount: stakerRecord.amount + amount,
 });
 
 @Command({
@@ -75,6 +91,7 @@ export class ParseCommand extends CommandRunner {
     const csvWriter = csvOutput ? prepareCsvWriter(csvOutput) : null;
     const holders: Record<string, HolderRecord> = {};
     const veMNDEHolders: Record<string, VeMNDEHolderRecord> = {};
+    const nativeStakers: Record<string, NativeStakerRecord> = {};
 
     for await (const parsedRecord of this.parserService.parse(sqlite)) {
       csvWriter?.write(parsedRecord);
@@ -100,6 +117,18 @@ export class ParseCommand extends CommandRunner {
       );
     }
 
+    for await (const parsedNativeStakerRecord of this.parserService.parseNativeStakes(
+      sqlite,
+    )) {
+      const stakerRecord =
+        nativeStakers[parsedNativeStakerRecord.pubkey] ??
+        defaultNativeStakerRecord(parsedNativeStakerRecord.pubkey);
+      nativeStakers[parsedNativeStakerRecord.pubkey] = updateNativeStakerRecord(
+        stakerRecord,
+        Number(parsedNativeStakerRecord.amount),
+      );
+    }
+
     csvWriter?.on('finish', () =>
       this.logger.log('Parsed records written to the CSV', { csv: csvOutput }),
     );
@@ -107,6 +136,10 @@ export class ParseCommand extends CommandRunner {
 
     if (slot) {
       const snapshotId = await this.snapshotService.createSnapshot(slot);
+      await this.snapshotService.storeSnapshotNativeStakerRecords(
+        snapshotId,
+        Object.values(nativeStakers),
+      );
       await this.snapshotService.storeSnapshotVeMNDERecords(
         snapshotId,
         Object.values(veMNDEHolders),

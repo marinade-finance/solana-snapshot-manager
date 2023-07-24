@@ -5,9 +5,17 @@ import { ParserService } from './parser.service';
 import { SnapshotController } from './snapshot.controller';
 import { SnapshotService } from './snapshot.service';
 import { SolanaModule } from 'src/solana/solana.module';
+import { InterceptorsModule } from 'src/interceptors/interceptors.module';
+import { StakersModule } from 'src/stakers/stakers.module';
 
 @Module({
-  imports: [RdsModule, CacheModule.register(), SolanaModule],
+  imports: [
+    RdsModule,
+    CacheModule.register(),
+    SolanaModule,
+    InterceptorsModule,
+    StakersModule,
+  ],
   controllers: [SnapshotController],
   providers: [SnapshotService, ParserService],
   exports: [SnapshotService, ParserService],

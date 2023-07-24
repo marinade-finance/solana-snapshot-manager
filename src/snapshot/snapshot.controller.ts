@@ -10,12 +10,16 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MsolBalanceDto, VeMNDEBalanceDto } from './snapshot.dto';
 import { SnapshotService } from './snapshot.service';
+import { StakersService } from 'src/stakers/stakers.service';
 
 @Controller('v1/snapshot/latest')
 @ApiTags('Snapshot')
 @UseInterceptors(CacheInterceptor)
 export class SnapshotController {
-  constructor(private readonly snapshotService: SnapshotService) {}
+  constructor(
+    private readonly snapshotService: SnapshotService,
+    private readonly stakersService: StakersService,
+  ) {}
 
   @Get('/msol/:pubkey')
   @ApiOperation({ summary: 'Fetch mSOL balance for a pubkey' })
