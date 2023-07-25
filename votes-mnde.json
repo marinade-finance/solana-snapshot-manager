@@ -18,11 +18,6 @@
     },
     {
       "tokenOwner":"",
-      "amount": "1000000000000",
-      "validatorVoteAccount": "AKoVXpZmi8wSz3sGvCYEygbpdHvSRysWsh36b97iPvKh"
-    },
-    {
-      "tokenOwner":"",
       "amount": "7000000000000",
       "validatorVoteAccount": "DimavhUqvCpWjUZqSFZGLqBiUVUYQ5jZEaCHutKKVs45"
     },
@@ -38,7 +33,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "11098652508833",
+      "amount": "1020000000000",
       "validatorVoteAccount": "4qvFxnUXYjBdcviCwVV7gKcGJMCENEBfS82hSLJUhyvu"
     },
     {
@@ -48,7 +43,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "11577200639789",
+      "amount": "6000000000000",
       "validatorVoteAccount": "76DafWkJ6pGK2hoD41HjrM4xTBhfKqrDYDazv13n5ir1"
     },
     {
@@ -133,7 +128,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "43264841321350",
+      "amount": "44278623920273",
       "validatorVoteAccount": "J1to3PQfXidUUhprQWgdKkQAMWPJAEqSJ7amkBDE9qhF"
     },
     {
@@ -158,12 +153,12 @@
     },
       {
       "tokenOwner":"",
-      "amount": "2948515489369754",
+      "amount": "2953731026224513",
       "validatorVoteAccount": "DfpdmTsSCBPxCDwZwgBMfjjV8mF8xHkGRcXP8dJBVmrq"
     },
       {
       "tokenOwner":"",
-      "amount": "1542963226836956",
+      "amount": "1540841017618012",
       "validatorVoteAccount": "mintrNtxN3PhAB45Pt41XqyKghTTpqcoBkQTZqh96iR"
     },
     {
@@ -213,7 +208,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "3319928369671178",
+      "amount": "3322050578890122",
       "validatorVoteAccount": "AS3nKBQfKs8fJ8ncyHrdvo4FDT6S8HMRhD75JjCcyr1t"
     },
     {
@@ -228,7 +223,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "1678083859495387",
+      "amount": "1677072859495387",
       "validatorVoteAccount": "EARNynHRWg6GfyJCmrrizcZxARB3HVzcaasvNa8kBS72"
     },
     {
@@ -253,7 +248,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "2394600647274660",
+      "amount": "2294600647274660",
       "validatorVoteAccount": "CogentC52e7kktFfWHwsqSmr8LiS1yAtfqhHcftCPcBJ"
     },
     {
@@ -283,7 +278,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "25152661503971",
+      "amount": "27274870722915",
       "validatorVoteAccount": "6hZL2FZim27WkQccMfygvvXH2eow5u3wR6XUJHbMoeWP"
     },
     {
@@ -303,7 +298,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "2353187612488634",
+      "amount": "2415602612490714",
       "validatorVoteAccount": "9xEFsHZt2mbuGQjtVGABxpeQiNeDvj54pfsJrrrUUev6"
     },
     {
@@ -343,7 +338,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "2043457895769482",
+      "amount": "2041335686550538",
       "validatorVoteAccount": "GREENr9zSeapgunqdMeTg8MCh2cDDn2y3py1mBGUzJYe"
     },
     {
