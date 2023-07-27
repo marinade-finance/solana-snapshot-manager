@@ -4,6 +4,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { IsValidDate } from 'src/decorators/snapshots-date.decorator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MSolVoteRecordDto {
@@ -52,6 +53,25 @@ export class MSolVoteRecordsDto {
   @IsDateString()
   @ApiProperty()
   voteRecordsCreatedAt: string;
+}
+
+export class SnapshotsIntervalDto {
+  @IsOptional()
+  @IsValidDate()
+  startDate: string;
+
+  @IsOptional()
+  @IsValidDate()
+  endDate: string;
+}
+
+export class MSolVoteSnapshotsDto {
+  @ValidateNested()
+  @ApiProperty({
+    type: MSolVoteRecordsDto,
+    isArray: true,
+  })
+  snapshots: MSolVoteRecordsDto[];
 }
 
 export class VeMNDEVoteRecordsDto {
