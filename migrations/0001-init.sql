@@ -26,6 +26,16 @@ CREATE TABLE vemnde_holders (
     CONSTRAINT fk_snapshot FOREIGN KEY (snapshot_id) REFERENCES snapshots(snapshot_id)
 );
 
+CREATE TABLE native_stake_accounts (
+    snapshot_id SERIAL NOT NULL,
+    withdraw_authority TEXT NOT NULL,
+
+    amount NUMERIC NOT NULL,
+
+    PRIMARY KEY (snapshot_id, withdraw_authority),
+    CONSTRAINT fk_snapshot FOREIGN KEY (snapshot_id) REFERENCES snapshots(snapshot_id)
+);
+
 CREATE TABLE msol_votes_batches (
     batch_id SERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

@@ -33,6 +33,7 @@ const enum Source {
 
 type SnapshotRecord = { pubkey: string; amount: string; source: Source };
 type VeMNDESnapshotRecord = { pubkey: string; amount: string };
+type NativeStakeSnapshotRecord = { pubkey: string; amount: string };
 
 const VSR_PROGRAM = '5zgEgPbWKsAAnLPjSM56ZsbLPfVM6nUzh3u45tCnm97D';
 const SYSTEM_PROGRAM = '11111111111111111111111111111111';
@@ -69,6 +70,12 @@ export class ParserService {
     db: SQLite.Database,
   ): AsyncGenerator<Record<string, BN>> {
     yield this.vemnde(db);
+  }
+
+  async *parseNativeStakesRecords(
+    db: SQLite.Database,
+  ): AsyncGenerator<Record<string, BN>> {
+    yield this.native_stakes(db);
   }
 
   async getFilters() {
@@ -143,6 +150,18 @@ export class ParserService {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
     for await (const record of this.parseVeMNDERecords(db)) {
+      for (const [pubkey, amount] of Object.entries(record)) {
+        yield { pubkey, amount: mndelamportsToMNDE(amount) };
+      }
+    }
+  }
+
+  async *parseNativeStakes(
+    sqlite: string,
+  ): AsyncGenerator<NativeStakeSnapshotRecord> {
+    this.logger.log('Opening the SQLite DB', { sqlite });
+    const db = SQLite(sqlite, { readonly: true });
+    for await (const record of this.parseNativeStakesRecords(db)) {
       for (const [pubkey, amount] of Object.entries(record)) {
         yield { pubkey, amount: mndelamportsToMNDE(amount) };
       }
@@ -659,6 +678,27 @@ export class ParserService {
       buf[row.voter_authority] = (buf[row.voter_authority] ?? new BN(0)).add(
         voting_power,
       );
+    });
+    return buf;
+  }
+
+  private native_stakes(db: SQLite.Database): Record<string, BN> {
+    this.logger.log('Parsing Native Stakes');
+    const buf: Record<string, BN> = {};
+    const result = db
+      .prepare(
+        `SELECT pubkey, withdraw_authority, amount FROM native_stake_accounts`,
+      )
+      .all() as {
+      pubkey: string;
+      withdraw_authority: string;
+      amount: string;
+    }[];
+    result.forEach((row) => {
+      const total_amount = new BN(row.amount);
+      buf[row.withdraw_authority] = (
+        buf[row.withdraw_authority] ?? new BN(0)
+      ).add(total_amount);
     });
     return buf;
   }
