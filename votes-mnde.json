@@ -88,7 +88,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "150000000000000",
+      "amount": "0",
       "validatorVoteAccount": "4PsiLMyoUQ7QRn1FFiFCvej4hsUTFzfvJnyN4bj1tmSN"
     },
     {
@@ -203,7 +203,7 @@
     },
     {
       "tokenOwner":"",
-      "amount": "779880617238902",
+      "amount": "754880617238309",
       "validatorVoteAccount": "juicQdAnksqZ5Yb8NQwCLjLWhykvXGktxnQCDvMe6Nx"
     },
     {
@@ -405,6 +405,11 @@
       "tokenOwner":"",
       "amount": "6248591060688",
       "validatorVoteAccount": "9Gko8QZBbV5SrEvHKtQHcMrGGSfgFP3KJUozEGifu25x"
+    },
+    {
+      "tokenOwner":"",
+      "amount": "1000000000000",
+      "validatorVoteAccount": "7QwGLymkdP7z2DpdzFXzNb9XEG7tsdBL2ucAVVjGmeVh"
     }
   ]
 }

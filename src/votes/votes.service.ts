@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import snapshot from '../../votes-mnde.json';
 import {
   DirectedStakeSdk,
   findVoteRecords,
@@ -9,7 +10,6 @@ import { Keypair } from '@solana/web3.js';
 import { batches, RdsService } from 'src/rds/rds.service';
 import { sql } from 'slonik';
 import { MSolVoteRecordsDto, VeMNDEVoteRecordsDto } from './votes.dto';
-import { readJsonFile } from 'src/util';
 
 @Injectable()
 export class VotesService {
@@ -117,12 +117,11 @@ export class VotesService {
 
   async getSnapshotVeMNDEVotes(): Promise<VeMNDEVoteRecordsDto | null> {
     this.logger.log('Fetching veMNDE votes from snapshot file...');
-    const data: VeMNDEVoteRecordsDto = await readJsonFile('./votes-mnde.json');
 
     return {
-      veMNDESnapshotCreatedAt: data.veMNDESnapshotCreatedAt,
-      voteRecordsCreatedAt: data.veMNDESnapshotCreatedAt || '',
-      records: data.records,
+      veMNDESnapshotCreatedAt: snapshot.voteRecordsCreatedAt,
+      voteRecordsCreatedAt: snapshot.voteRecordsCreatedAt || '',
+      records: snapshot.records,
     };
   }
 
