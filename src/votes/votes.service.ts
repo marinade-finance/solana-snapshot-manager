@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import snapshot from '../../votes-mnde.json';
 import {
   DirectedStakeSdk,
   findVoteRecords,
@@ -206,6 +207,16 @@ export class VotesService {
         tokenOwner: owner,
         validatorVoteAccount: vote_account,
       })),
+    };
+  }
+
+  async getSnapshotVeMNDEVotes(): Promise<VeMNDEVoteRecordsDto | null> {
+    this.logger.log('Fetching veMNDE votes from snapshot file...');
+
+    return {
+      veMNDESnapshotCreatedAt: snapshot.voteRecordsCreatedAt,
+      voteRecordsCreatedAt: snapshot.voteRecordsCreatedAt || '',
+      records: snapshot.records,
     };
   }
 
