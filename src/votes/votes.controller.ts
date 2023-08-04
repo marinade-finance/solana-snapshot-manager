@@ -89,7 +89,7 @@ export class VotesController {
   @CacheKey('veMNDE voting power')
   @CacheTTL(60e3)
   async getVeMNDEVotesFromLastSnaphot(): Promise<VeMNDEVoteRecordsDto> {
-    const result = await this.votesService.getSnapshotVeMNDEVotes();
+    const result = await this.votesService.getLatestveMNDEVotes();
     if (!result) {
       throw new HttpException('No records available', HttpStatus.NOT_FOUND);
     }
