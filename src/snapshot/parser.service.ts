@@ -44,6 +44,7 @@ const TUM_SOL_MINT = '8cn7JcYVjDZesLa3RTt3NXne4WcDw9PdUneQWuByehwW';
 const FRIKTION_MINT = '6UA3yn28XecAHLTwoCtjfzy3WcyQj1x13bxnH8urUiKt';
 const SABER_MSOL_SUPPLY = 'SoLEao8wTzSfqhuou8rcYsVoLjthVmiXuEjzdNPMnCz';
 const SOLEND_MSOL_MINT = '3JFC4cB56Er45nWVe29Bhnn5GnwQzSmHVf6eUq9ac91h';
+const SOLEND_RESERVE_ADDR = 'CCpirWrgNuBVLdkP2haxLTbD6XqEgaYuVXixbbpxUB6';
 const DRIFT_MSOL_MARKET_ADDR = 'Mr2XZwj1NisUur3WZWdERdqnEUMoa9F9pUr52vqHyqj';
 const MRGN_BANK_ADDR = '22DcjMZrMwC5Bpa5AGBsmjc5V9VuQrXG6N9ZtdUNyYGE';
 
@@ -92,6 +93,13 @@ export class ParserService {
     const mercurialMints = this.getMercurialLpsAndMsolVaults().map(
       ({ lp }) => lp,
     );
+    const solend_reserve_info =
+      await this.solanaService.connection.getAccountInfo(
+        new PublicKey(SOLEND_RESERVE_ADDR),
+      );
+    if (!solend_reserve_info) {
+      throw new Error('Failed to get Solend Reserve Data!');
+    }
     const vsr_registrar_info =
       await this.solanaService.connection.getAccountInfo(
         new PublicKey(VSR_PROGRAM),
@@ -137,6 +145,7 @@ export class ParserService {
       drift_cumulative_interest:
         drift_cumulative_interest.data.toString('base64'),
       mrgn_bank_data: mrgn_bank_info.data.toString('base64'),
+      solend_reserve_data: solend_reserve_info.data.toString('base64'),
     };
   }
 
