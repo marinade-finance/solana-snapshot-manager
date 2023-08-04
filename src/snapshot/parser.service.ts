@@ -42,6 +42,7 @@ const TUM_SOL_MINT = '8cn7JcYVjDZesLa3RTt3NXne4WcDw9PdUneQWuByehwW';
 const FRIKTION_MINT = '6UA3yn28XecAHLTwoCtjfzy3WcyQj1x13bxnH8urUiKt';
 const SABER_MSOL_SUPPLY = 'SoLEao8wTzSfqhuou8rcYsVoLjthVmiXuEjzdNPMnCz';
 const SOLEND_MSOL_MINT = '3JFC4cB56Er45nWVe29Bhnn5GnwQzSmHVf6eUq9ac91h';
+const DRIFT_MSOL_MARKET_ADDR = 'Mr2XZwj1NisUur3WZWdERdqnEUMoa9F9pUr52vqHyqj';
 
 type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 
@@ -93,6 +94,19 @@ export class ParserService {
     if (!vsr_registrar_info) {
       throw new Error('Failed to get VSR Registrar Data!');
     }
+    const drift_cumulative_interest =
+      await this.solanaService.connection.getAccountInfo(
+        new PublicKey(DRIFT_MSOL_MARKET_ADDR),
+        {
+          dataSlice: {
+            length: 16,
+            offset: 464,
+          },
+        },
+      );
+    if (!drift_cumulative_interest) {
+      throw new Error('Failed to get Drift Cumulative Interest Data!');
+    }
 
     return {
       account_owners: SYSTEM_PROGRAM,
@@ -109,6 +123,8 @@ export class ParserService {
         .map(({ address }) => address)
         .join(','),
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
+      drift_cumulative_interest:
+        drift_cumulative_interest.data.toString('base64'),
     };
   }
 
