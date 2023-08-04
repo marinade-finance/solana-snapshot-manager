@@ -29,6 +29,7 @@ const enum Source {
   SABER = 'SABER',
   FRIKTION = 'FRIKTION',
   PORT = 'PORT',
+  MRGN = 'MRGN',
 }
 
 type SnapshotRecord = { pubkey: string; amount: string; source: Source };
@@ -42,6 +43,7 @@ const TUM_SOL_MINT = '8cn7JcYVjDZesLa3RTt3NXne4WcDw9PdUneQWuByehwW';
 const FRIKTION_MINT = '6UA3yn28XecAHLTwoCtjfzy3WcyQj1x13bxnH8urUiKt';
 const SABER_MSOL_SUPPLY = 'SoLEao8wTzSfqhuou8rcYsVoLjthVmiXuEjzdNPMnCz';
 const SOLEND_MSOL_MINT = '3JFC4cB56Er45nWVe29Bhnn5GnwQzSmHVf6eUq9ac91h';
+const MRGN_BANK_ADDR = '22DcjMZrMwC5Bpa5AGBsmjc5V9VuQrXG6N9ZtdUNyYGE';
 
 type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 
@@ -64,6 +66,7 @@ export class ParserService {
     yield [this.saber(db), Source.SABER];
     yield [this.friktion(db), Source.FRIKTION];
     yield [this.port(db), Source.PORT];
+    yield [this.mrgn(db), Source.MRGN];
   }
 
   async *parseVeMNDERecords(
@@ -93,6 +96,12 @@ export class ParserService {
     if (!vsr_registrar_info) {
       throw new Error('Failed to get VSR Registrar Data!');
     }
+    const mrgn_bank_info = await this.solanaService.connection.getAccountInfo(
+      new PublicKey(MRGN_BANK_ADDR),
+    );
+    if (!mrgn_bank_info) {
+      throw new Error('Failed to get MRGN Bank Data!');
+    }
 
     return {
       account_owners: SYSTEM_PROGRAM,
@@ -109,6 +118,7 @@ export class ParserService {
         .map(({ address }) => address)
         .join(','),
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
+      mrgn_bank_data: mrgn_bank_info.data.toString('base64'),
     };
   }
 
@@ -507,6 +517,24 @@ export class ParserService {
       buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(
         new BN(row.deposit_amount),
       );
+    });
+    return buf;
+  }
+
+  private mrgn(db: SQLite.Database): Record<string, BN> {
+    this.logger.log('Parsing MRGN');
+    const buf: Record<string, BN> = {};
+    const result = db
+      .prepare(
+        `
+            SELECT owner, cast(amount as text) as amount
+            FROM mrgn
+            ORDER BY amount DESC
+        `,
+      )
+      .all() as { owner: string; amount: string }[];
+    result.forEach((row) => {
+      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
     });
     return buf;
   }
