@@ -29,6 +29,7 @@ const enum Source {
   SABER = 'SABER',
   FRIKTION = 'FRIKTION',
   PORT = 'PORT',
+  DRIFT = 'DRIFT',
 }
 
 type SnapshotRecord = { pubkey: string; amount: string; source: Source };
@@ -65,6 +66,7 @@ export class ParserService {
     yield [this.saber(db), Source.SABER];
     yield [this.friktion(db), Source.FRIKTION];
     yield [this.port(db), Source.PORT];
+    yield [this.drift(db), Source.DRIFT];
   }
 
   async *parseVeMNDERecords(
@@ -523,6 +525,24 @@ export class ParserService {
       buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(
         new BN(row.deposit_amount),
       );
+    });
+    return buf;
+  }
+
+  private drift(db: SQLite.Database): Record<string, BN> {
+    this.logger.log('Parsing Drift');
+    const buf: Record<string, BN> = {};
+    const result = db
+      .prepare(
+        `
+            SELECT owner, cast(amount as text) as amount
+            FROM drift
+            ORDER BY amount DESC
+        `,
+      )
+      .all() as { owner: string; amount: string }[];
+    result.forEach((row) => {
+      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
     });
     return buf;
   }
