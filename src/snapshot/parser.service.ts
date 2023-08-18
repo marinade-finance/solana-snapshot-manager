@@ -16,7 +16,14 @@ import {
 import 'isomorphic-fetch';
 import { mlamportsToMsol, mndelamportsToMNDE } from 'src/util';
 import { SolanaService } from 'src/solana/solana.service';
-import { PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
+import { AnchorProvider } from '@coral-xyz/anchor';
+import {
+  MANGO_V4_ID,
+  MangoClient,
+  Group,
+} from '@blockworks-foundation/mango-v4';
+import EmptyWallet from 'src/util';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -31,6 +38,7 @@ const enum Source {
   PORT = 'PORT',
   DRIFT = 'DRIFT',
   MRGN = 'MRGN',
+  MANGO = 'MANGO',
 }
 
 type SnapshotRecord = { pubkey: string; amount: string; source: Source };
@@ -47,6 +55,7 @@ const SOLEND_MSOL_MINT = '3JFC4cB56Er45nWVe29Bhnn5GnwQzSmHVf6eUq9ac91h';
 const SOLEND_RESERVE_ADDR = 'CCpirWrgNuBVLdkP2haxLTbD6XqEgaYuVXixbbpxUB6';
 const DRIFT_MSOL_MARKET_ADDR = 'Mr2XZwj1NisUur3WZWdERdqnEUMoa9F9pUr52vqHyqj';
 const MRGN_BANK_ADDR = '22DcjMZrMwC5Bpa5AGBsmjc5V9VuQrXG6N9ZtdUNyYGE';
+const MANGO_MAINNET_GROUP = '78b8f4cGCwmZ9ysPFMWLaLTkkaYnUjwMJYStWe5RTSSX';
 
 type OrcaTokenAmountSelector = (_: whirlpool.TokenAmounts) => BN;
 
@@ -71,6 +80,7 @@ export class ParserService {
     yield [this.port(db), Source.PORT];
     yield [this.drift(db), Source.DRIFT];
     yield [this.mrgn(db), Source.MRGN];
+    yield [this.mango(db), Source.MANGO];
   }
 
   async *parseVeMNDERecords(
@@ -100,6 +110,7 @@ export class ParserService {
     if (!solend_reserve_info) {
       throw new Error('Failed to get Solend Reserve Data!');
     }
+
     const vsr_registrar_info =
       await this.solanaService.connection.getAccountInfo(
         new PublicKey(VSR_PROGRAM),
@@ -126,6 +137,7 @@ export class ParserService {
     if (!mrgn_bank_info) {
       throw new Error('Failed to get MRGN Bank Data!');
     }
+    const mango_bank_index = await this.getMangoBankIndex();
 
     return {
       account_owners: SYSTEM_PROGRAM,
@@ -146,6 +158,7 @@ export class ParserService {
         drift_cumulative_interest.data.toString('base64'),
       mrgn_bank_data: mrgn_bank_info.data.toString('base64'),
       solend_reserve_data: solend_reserve_info.data.toString('base64'),
+      mango_bank_index: mango_bank_index,
     };
   }
 
@@ -258,6 +271,31 @@ export class ParserService {
       );
     });
     return buf;
+  }
+
+  private async getMangoBankIndex() {
+    const MAINNET_GROUP = new PublicKey(MANGO_MAINNET_GROUP);
+    const options = AnchorProvider.defaultOptions();
+    const adminProvider = new AnchorProvider(
+      this.solanaService.connection,
+      new EmptyWallet(Keypair.generate()),
+      options,
+    );
+    const client = await MangoClient.connect(
+      adminProvider,
+      'mainnet-beta',
+      MANGO_V4_ID['mainnet-beta'],
+    );
+    const groupAccount = await client.program.account.group.fetch(
+      MAINNET_GROUP,
+    );
+    const group = Group.from(MAINNET_GROUP, groupAccount);
+    await group.reloadBanks(client);
+    const msolBanks = group.banksMapByMint.get(MSOL_MINT);
+    if (msolBanks && msolBanks[0]) {
+      return msolBanks[0].depositIndex.toString();
+    }
+    return '';
   }
 
   private async getOrcaWhirlpools() {
@@ -556,6 +594,24 @@ export class ParserService {
         `
             SELECT owner, cast(amount as text) as amount
             FROM drift
+            ORDER BY amount DESC
+        `,
+      )
+      .all() as { owner: string; amount: string }[];
+    result.forEach((row) => {
+      buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
+    });
+    return buf;
+  }
+
+  private mango(db: SQLite.Database): Record<string, BN> {
+    this.logger.log('Parsing Mango');
+    const buf: Record<string, BN> = {};
+    const result = db
+      .prepare(
+        `
+            SELECT owner, cast(amount as text) as amount
+            FROM mango
             ORDER BY amount DESC
         `,
       )
