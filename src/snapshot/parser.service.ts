@@ -23,7 +23,7 @@ import {
   MangoClient,
   Group,
 } from '@blockworks-foundation/mango-v4';
-import EmptyWallet from 'src/util';
+import { Wallet } from '@coral-xyz/anchor';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -137,7 +137,7 @@ export class ParserService {
     if (!mrgn_bank_info) {
       throw new Error('Failed to get MRGN Bank Data!');
     }
-    const mango_bank_index = await this.getMangoBankIndex();
+    const mango_bank_deposit_index = await this.getMangoBankIndex();
 
     return {
       account_owners: SYSTEM_PROGRAM,
@@ -158,7 +158,7 @@ export class ParserService {
         drift_cumulative_interest.data.toString('base64'),
       mrgn_bank_data: mrgn_bank_info.data.toString('base64'),
       solend_reserve_data: solend_reserve_info.data.toString('base64'),
-      mango_bank_index: mango_bank_index,
+      mango_bank_deposit_index: mango_bank_deposit_index,
     };
   }
 
@@ -278,7 +278,7 @@ export class ParserService {
     const options = AnchorProvider.defaultOptions();
     const adminProvider = new AnchorProvider(
       this.solanaService.connection,
-      new EmptyWallet(Keypair.generate()),
+      new Wallet(Keypair.generate()),
       options,
     );
     const client = await MangoClient.connect(
