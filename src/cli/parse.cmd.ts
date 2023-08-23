@@ -30,6 +30,7 @@ const defaultHolderRecord = (holder: string): HolderRecord => ({
   amount: 0,
   sources: [],
   amounts: [],
+  isVault: false,
 });
 const defaultVeMNDEHolderRecord = (holder: string): VeMNDEHolderRecord => ({
   holder,
@@ -47,11 +48,13 @@ const updateRecord = (
   holderRecord: HolderRecord,
   amount: number,
   source: string,
+  isVault: boolean,
 ): HolderRecord => ({
   holder: holderRecord.holder,
   amount: holderRecord.amount + amount,
   sources: [...holderRecord.sources, source],
   amounts: [...holderRecord.amounts, amount],
+  isVault: isVault,
 });
 
 const updateVeMNDERecord = (
@@ -102,6 +105,7 @@ export class ParseCommand extends CommandRunner {
         holderRecord,
         Number(parsedRecord.amount),
         parsedRecord.source,
+        parsedRecord.isVault,
       );
     }
 

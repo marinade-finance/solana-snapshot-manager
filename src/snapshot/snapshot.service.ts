@@ -12,6 +12,7 @@ export type HolderRecord = {
   amount: number;
   sources: string[];
   amounts: number[];
+  isVault: boolean;
 };
 
 export type VeMNDEHolderRecord = {
@@ -134,18 +135,21 @@ export class SnapshotService {
     const BATCH_SIZE = 1000;
     for (const batch of batches(holders, BATCH_SIZE)) {
       await this.rdsService.pool.query(sql.unsafe`
-                INSERT INTO msol_holders (snapshot_id, owner, amount, sources, amounts)
+                INSERT INTO msol_holders (snapshot_id, owner, amount, sources, amounts, is_vault)
                 SELECT *
                 FROM jsonb_to_recordset(${sql.jsonb(
-                  batch.map(({ holder, amount, sources, amounts }) => ({
-                    snapshotId,
-                    holder,
-                    amount,
-                    sources,
-                    amounts,
-                  })),
+                  batch.map(
+                    ({ holder, amount, sources, amounts, isVault }) => ({
+                      snapshotId,
+                      holder,
+                      amount,
+                      sources,
+                      amounts,
+                      isVault,
+                    }),
+                  ),
                 )})
-                AS t ("snapshotId" integer, holder text, amount numeric, sources text[], amounts numeric[])`);
+                AS t ("snapshotId" integer, holder text, amount numeric, sources text[], amounts numeric[], is_vault boolean)`);
       this.logger.log('mSOL Holders Batch inserted', {
         snapshotId,
         len: batch.length,
