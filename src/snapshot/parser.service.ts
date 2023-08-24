@@ -17,7 +17,7 @@ import 'isomorphic-fetch';
 import { mlamportsToMsol, mndelamportsToMNDE } from 'src/util';
 import { SolanaService } from 'src/solana/solana.service';
 import { PublicKey } from '@solana/web3.js';
-import vaults from '../vaults/vaults.json';
+import vaults from 'src/vaults/vaults';
 
 const enum Source {
   WALLET = 'WALLET',
