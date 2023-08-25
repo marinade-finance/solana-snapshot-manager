@@ -24,6 +24,7 @@ import {
   Group,
 } from '@blockworks-foundation/mango-v4';
 import { Wallet } from '@coral-xyz/anchor';
+import vaults from 'src/vaults/vaults';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -41,7 +42,12 @@ const enum Source {
   MANGO = 'MANGO',
 }
 
-type SnapshotRecord = { pubkey: string; amount: string; source: Source };
+type SnapshotRecord = {
+  pubkey: string;
+  amount: string;
+  source: Source;
+  isVault: boolean;
+};
 type VeMNDESnapshotRecord = { pubkey: string; amount: string };
 type NativeStakeSnapshotRecord = { pubkey: string; amount: string };
 
@@ -173,17 +179,21 @@ export class ParserService {
     }
 
     for await (const [partialRecords, source] of this.parsedRecords(db)) {
-      const sum = Object.values(partialRecords).reduce(
-        (sum, amount) => sum.add(amount),
-        new BN(0),
-      );
+      const sum = Object.entries(partialRecords).reduce((sum, [key, value]) => {
+        return vaults.includes(key) ? sum : sum.add(value);
+      }, new BN(0));
       mSolParsedAmount = mSolParsedAmount.add(sum);
       this.logger.log('Parsed records received', {
         source,
         sum: mlamportsToMsol(sum),
       });
       for (const [pubkey, amount] of Object.entries(partialRecords)) {
-        yield { pubkey, amount: mlamportsToMsol(amount), source };
+        yield {
+          pubkey,
+          amount: mlamportsToMsol(amount),
+          source,
+          isVault: vaults.includes(pubkey),
+        };
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
