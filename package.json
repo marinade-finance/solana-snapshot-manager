@@ -26,6 +26,8 @@
     "posttest": "npm run lint"
   },
   "dependencies": {
+    "@blockworks-foundation/mango-v4": "^0.19.3",
+    "@coral-xyz/anchor": "0.28.1-beta.1",
     "@marinade.finance/directed-stake-sdk": "^0.0.4",
     "@nestjs/cache-manager": "^1.0.0",
     "@nestjs/common": "^9.0.0",
