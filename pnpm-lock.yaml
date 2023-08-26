@@ -65,9 +65,6 @@ dependencies:
   isomorphic-fetch:
     specifier: ^3.0.0
     version: 3.0.0
-  listingTools:
-    specifier: link:@utils/Mango/listingTools
-    version: link:@utils/Mango/listingTools
   log4js:
     specifier: ^6.9.1
     version: 6.9.1
