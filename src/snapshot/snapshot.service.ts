@@ -145,7 +145,7 @@ export class SnapshotService {
                       amount,
                       sources,
                       amounts,
-                      isVault,
+                      is_vault: isVault,
                     }),
                   ),
                 )})
