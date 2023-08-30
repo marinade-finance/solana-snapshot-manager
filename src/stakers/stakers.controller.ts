@@ -11,6 +11,7 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   NativeStakeBalanceDto,
+  NativeStakeBalancesDto,
   SnapshotsIntervalDto,
 } from '../snapshot/snapshot.dto';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
@@ -21,6 +22,46 @@ import { StakersService } from './stakers.service';
 @UseInterceptors(CacheInterceptor)
 export class StakersController {
   constructor(private readonly stakersService: StakersService) {}
+
+
+  @Get('/ns/all')
+  @ApiOperation({
+    summary: 'Fetch Native Stake balances for a specific date interval',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The records were successfully fetched.',
+    type: NativeStakeBalanceDto,
+  })
+  @UseInterceptors(HttpDateCacheInterceptor)
+  @CacheTTL(60e3)
+  async getAllNativeStakes(
+    @Query() query: SnapshotsIntervalDto,
+  ): Promise<NativeStakeBalancesDto> {
+    if (query.startDate && query.endDate) {
+      if (Date.parse(query.startDate) > Date.parse(query.endDate)) {
+        throw new HttpException(
+          'startDate is later than endDate',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+    if (!query.startDate && !query.endDate) {
+      throw new HttpException(
+        'No startDate or endDate provided',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const result = await this.stakersService.getAllNativeStakeBalances(
+      query.startDate,
+      query.endDate,
+    );
+    if (!result) {
+      throw new HttpException('No holders found', HttpStatus.NOT_FOUND);
+    }
+
+    return result;
+  }
 
   @Get('/ns/:pubkey')
   @ApiOperation({
