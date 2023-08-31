@@ -1,3 +1,4 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
 import BN from 'bn.js';
 
 const MSOL_DECIMALS = 9;
@@ -19,4 +20,21 @@ export function mndelamportsToMNDE(bn: BN): string {
 
 export function msolToMlamports(amount: number): BN {
   return new BN(amount.toFixed(MSOL_DECIMALS).replace('.', ''));
+}
+
+export function validateDateInterval(startDate: string, endDate: string) {
+  if (startDate && endDate) {
+    if (Date.parse(startDate) > Date.parse(endDate)) {
+      throw new HttpException(
+        'startDate is later than endDate',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+  if (!startDate && !endDate) {
+    throw new HttpException(
+      'No startDate or endDate provided',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 }

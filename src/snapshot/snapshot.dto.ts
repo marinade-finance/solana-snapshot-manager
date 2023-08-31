@@ -44,7 +44,7 @@ export class NativeStakeBalanceDto {
   createdAt: string;
 }
 
-export class NativeStakeBalancesDto {
+export class AllNativeStakeBalancesDto {
   [owner: string]: NativeStakeBalanceDto[];
 }
 

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sql } from 'slonik';
 import { RdsService } from 'src/rds/rds.service';
-import { NativeStakeBalanceDto } from '../snapshot/snapshot.dto';
+import {
+  NativeStakeBalanceDto,
+  AllNativeStakeBalancesDto,
+} from '../snapshot/snapshot.dto';
 
 @Injectable()
 export class StakersService {
@@ -48,7 +51,7 @@ export class StakersService {
   async getAllNativeStakeBalances(
     startDate: string,
     endDate: string,
-  ): Promise<{ [key: string]: NativeStakeBalanceDto[] } | null> {
+  ): Promise<AllNativeStakeBalancesDto | null> {
     if (!startDate) {
       startDate = new Date(0).toISOString();
     }
@@ -69,7 +72,7 @@ export class StakersService {
       return null;
     }
 
-    const ownerBalances: { [key: string]: NativeStakeBalanceDto[] } = {};
+    const ownerBalances: AllNativeStakeBalancesDto = {};
 
     for (const balance of result) {
       const balanceDto = {

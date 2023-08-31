@@ -11,18 +11,18 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   NativeStakeBalanceDto,
-  NativeStakeBalancesDto,
+  AllNativeStakeBalancesDto,
   SnapshotsIntervalDto,
 } from '../snapshot/snapshot.dto';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 import { StakersService } from './stakers.service';
+import { validateDateInterval } from 'src/util';
 
 @Controller('v1/stakers/')
 @ApiTags('Stakers')
 @UseInterceptors(CacheInterceptor)
 export class StakersController {
   constructor(private readonly stakersService: StakersService) {}
-
 
   @Get('/ns/all')
   @ApiOperation({
@@ -31,27 +31,14 @@ export class StakersController {
   @ApiResponse({
     status: 200,
     description: 'The records were successfully fetched.',
-    type: NativeStakeBalanceDto,
+    type: AllNativeStakeBalancesDto,
   })
   @UseInterceptors(HttpDateCacheInterceptor)
   @CacheTTL(60e3)
   async getAllNativeStakes(
     @Query() query: SnapshotsIntervalDto,
-  ): Promise<NativeStakeBalancesDto> {
-    if (query.startDate && query.endDate) {
-      if (Date.parse(query.startDate) > Date.parse(query.endDate)) {
-        throw new HttpException(
-          'startDate is later than endDate',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    }
-    if (!query.startDate && !query.endDate) {
-      throw new HttpException(
-        'No startDate or endDate provided',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  ): Promise<AllNativeStakeBalancesDto> {
+    validateDateInterval(query.startDate, query.endDate);
     const result = await this.stakersService.getAllNativeStakeBalances(
       query.startDate,
       query.endDate,
@@ -79,20 +66,7 @@ export class StakersController {
     @Param('pubkey') pubkey: string,
     @Query() query: SnapshotsIntervalDto,
   ): Promise<NativeStakeBalanceDto[]> {
-    if (query.startDate && query.endDate) {
-      if (Date.parse(query.startDate) > Date.parse(query.endDate)) {
-        throw new HttpException(
-          'startDate is later than endDate',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    }
-    if (!query.startDate && !query.endDate) {
-      throw new HttpException(
-        'No startDate or endDate provided',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    validateDateInterval(query.startDate, query.endDate);
     const result = await this.stakersService.getNativeStakeBalances(
       query.startDate,
       query.endDate,
