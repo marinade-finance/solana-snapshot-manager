@@ -44,6 +44,10 @@ export class NativeStakeBalanceDto {
   createdAt: string;
 }
 
+export class AllNativeStakeBalancesDto {
+  [owner: string]: NativeStakeBalanceDto[];
+}
+
 export class SnapshotsIntervalDto {
   @IsOptional()
   @IsValidDate()

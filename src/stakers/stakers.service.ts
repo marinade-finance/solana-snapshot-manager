@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sql } from 'slonik';
 import { RdsService } from 'src/rds/rds.service';
-import { NativeStakeBalanceDto } from '../snapshot/snapshot.dto';
+import {
+  NativeStakeBalanceDto,
+  AllNativeStakeBalancesDto,
+} from '../snapshot/snapshot.dto';
 
 @Injectable()
 export class StakersService {
@@ -43,5 +46,48 @@ export class StakersService {
 
     this.logger.log('Staker data fetched', { withdraw_authority, result });
     return balances;
+  }
+
+  async getAllNativeStakeBalances(
+    startDate: string,
+    endDate: string,
+  ): Promise<AllNativeStakeBalancesDto | null> {
+    if (!startDate) {
+      startDate = new Date(0).toISOString();
+    }
+
+    if (!endDate) {
+      endDate = new Date(Date.now()).toISOString();
+    }
+
+    const result = await this.rdsService.pool.any(sql.unsafe`
+        SELECT *
+        FROM native_stake_accounts
+        LEFT JOIN snapshots ON snapshots.snapshot_id = native_stake_accounts.snapshot_id
+        WHERE snapshots.created_at >= ${startDate} AND snapshots.created_at <= ${endDate}
+      `);
+
+    if (!result || result.length === 0) {
+      this.logger.warn('Stakes not found!');
+      return null;
+    }
+
+    const ownerBalances: AllNativeStakeBalancesDto = {};
+
+    for (const balance of result) {
+      const balanceDto = {
+        amount: balance.amount,
+        slot: balance.slot,
+        createdAt: balance.created_at,
+      };
+
+      if (!ownerBalances[balance.withdraw_authority]) {
+        ownerBalances[balance.withdraw_authority] = [];
+      }
+
+      ownerBalances[balance.withdraw_authority]?.push(balanceDto);
+    }
+
+    return ownerBalances;
   }
 }

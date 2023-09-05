@@ -16,6 +16,7 @@ import {
 } from './votes.dto';
 import { VotesService } from './votes.service';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
+import { validateDateInterval } from 'src/util';
 
 @Controller('v1/votes')
 @ApiTags('Votes')
@@ -53,20 +54,7 @@ export class VotesController {
   async getMsolBalance(
     @Query() query: SnapshotsIntervalDto,
   ): Promise<MSolVoteSnapshotsDto> {
-    if (query.startDate && query.endDate) {
-      if (Date.parse(query.startDate) > Date.parse(query.endDate)) {
-        throw new HttpException(
-          'startDate is later than endDate',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    }
-    if (!query.startDate && !query.endDate) {
-      throw new HttpException(
-        'No startDate or endDate provided',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    validateDateInterval(query.startDate, query.endDate);
 
     const result = await this.votesService.getMSolVotes(
       query.startDate,
