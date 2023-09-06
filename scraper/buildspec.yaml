@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    TAG: c11d214
+    TAG: de24394
     REGION: eu-central-1
   parameter-store:
     POSTGRES_URL: /marinade/solana-snapshot-manager/db/prod
@@ -15,7 +15,7 @@ phases:
     commands:
       - apt update -y && apt upgrade -y
       - apt install curl sqlite3 zstd -y
-      - curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm@7
+      - wget -qO- https://get.pnpm.io/install.sh | PNPM_VERSION=7.33.2 ENV="$HOME/.bashrc" SHELL="$(which bash)" bash - && export PATH="/root/.local/share/pnpm:$PATH"
   pre_build:
     on-failure: ABORT
     commands:
