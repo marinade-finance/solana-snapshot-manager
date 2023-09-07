@@ -1,5 +1,6 @@
 import {
   IsDateString,
+  IsNotEmpty,
   IsOptional,
   IsString,
   ValidateNested,
@@ -58,10 +59,12 @@ export class MSolVoteRecordsDto {
 export class SnapshotsIntervalDto {
   @IsOptional()
   @IsValidDate()
+  @ApiProperty({ required: true, description: 'Start Date' })
   startDate: string;
 
   @IsOptional()
   @IsValidDate()
+  @ApiProperty({ required: true, description: 'End Date' })
   endDate: string;
 }
 
