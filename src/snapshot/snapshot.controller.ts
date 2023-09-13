@@ -8,7 +8,12 @@ import {
 } from '@nestjs/common';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { MsolBalanceDto, VeMNDEBalanceDto } from './snapshot.dto';
+import {
+  AllLiquidStakeBalancesDto,
+  AllNativeStakeBalancesDto,
+  MsolBalanceDto,
+  VeMNDEBalanceDto,
+} from './snapshot.dto';
 import { SnapshotService } from './snapshot.service';
 import { StakersService } from 'src/stakers/stakers.service';
 
@@ -35,6 +40,24 @@ export class SnapshotController {
     const result = await this.snapshotService.getMsolBalanceFromLastSnaphot(
       pubkey,
     );
+    if (!result) {
+      throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
+    }
+
+    return result;
+  }
+
+  @Get('/msol-all')
+  @ApiOperation({ summary: 'Fetch mSOL balance for all holders' })
+  @ApiResponse({
+    status: 200,
+    description: 'The record was successfully fetched.',
+    type: AllLiquidStakeBalancesDto,
+  })
+  @CacheTTL(60e3)
+  async getAllMsolBalancesFromLastSnaphot(): Promise<AllNativeStakeBalancesDto | null> {
+    const result =
+      await this.snapshotService.getAllMsolBalancesFromLastSnaphot();
     if (!result) {
       throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
     }

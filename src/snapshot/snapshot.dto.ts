@@ -48,6 +48,24 @@ export class AllNativeStakeBalancesDto {
   [owner: string]: NativeStakeBalanceDto[];
 }
 
+export class LiquidStakeBalanceDto {
+  @IsNumber()
+  @ApiProperty()
+  amount: string;
+
+  @IsNumber()
+  @ApiProperty()
+  slot: number;
+
+  @IsDateString()
+  @ApiProperty()
+  createdAt: string;
+}
+
+export class AllLiquidStakeBalancesDto {
+  [owner: string]: LiquidStakeBalanceDto[];
+}
+
 export class SnapshotsIntervalDto {
   @IsOptional()
   @IsValidDate()

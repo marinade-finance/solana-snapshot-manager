@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { sql } from 'slonik';
 import { batches, RdsService } from 'src/rds/rds.service';
 import {
+  AllLiquidStakeBalancesDto,
   MsolBalanceDto,
   NativeStakeBalanceDto,
   VeMNDEBalanceDto,
@@ -92,6 +93,42 @@ export class SnapshotService {
       slot: result.slot,
       createdAt: result.created_at,
     };
+  }
+
+  async getAllMsolBalancesFromLastSnaphot(): Promise<AllLiquidStakeBalancesDto | null> {
+    const result = await this.rdsService.pool.any(sql.unsafe`
+            WITH last_snapshot AS (
+                SELECT *
+                FROM snapshots
+                WHERE snapshot_id = (SELECT MAX(snapshot_id) FROM snapshots)
+            )
+            SELECT *
+            FROM msol_holders
+            INNER JOIN last_snapshot ON msol_holders.snapshot_id = last_snapshot.snapshot_id
+      `);
+
+    if (!result || result.length === 0) {
+      this.logger.warn('Holdings not found!');
+      return null;
+    }
+
+    const ownerBalances: AllLiquidStakeBalancesDto = {};
+
+    for (const balance of result) {
+      const balanceDto = {
+        amount: balance.amount,
+        slot: balance.slot,
+        createdAt: balance.created_at,
+      };
+
+      if (!ownerBalances[balance.withdraw_authority]) {
+        ownerBalances[balance.withdraw_authority] = [];
+      }
+
+      ownerBalances[balance.withdraw_authority]?.push(balanceDto);
+    }
+
+    return ownerBalances;
   }
 
   async getVeMNDEBalanceFromLastSnaphot(
