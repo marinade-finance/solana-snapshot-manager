@@ -13,6 +13,7 @@ import {
   NativeStakeBalanceDto,
   AllNativeStakeBalancesDto,
   SnapshotsIntervalDto,
+  StakerBalancesDto,
 } from '../snapshot/snapshot.dto';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 import { StakersService } from './stakers.service';
@@ -23,6 +24,33 @@ import { validateDateInterval } from 'src/util';
 @UseInterceptors(CacheInterceptor)
 export class StakersController {
   constructor(private readonly stakersService: StakersService) {}
+  @Get('/all/:pubkey')
+  @ApiOperation({
+    summary: 'Fetch all balances for a pubkey for a specific date interval',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The records were successfully fetched.',
+    type: StakerBalancesDto,
+  })
+  @UseInterceptors(HttpDateCacheInterceptor)
+  @CacheTTL(60e3)
+  async getAllStakes(
+    @Param('pubkey') pubkey: string,
+    @Query() query: SnapshotsIntervalDto,
+  ): Promise<StakerBalancesDto> {
+    validateDateInterval(query.startDate, query.endDate);
+    const result = await this.stakersService.getAllStakeBalances(
+      pubkey,
+      query.startDate,
+      query.endDate,
+    );
+    if (!result) {
+      throw new HttpException('No holders found', HttpStatus.NOT_FOUND);
+    }
+
+    return result;
+  }
 
   @Get('/ns/all')
   @ApiOperation({
