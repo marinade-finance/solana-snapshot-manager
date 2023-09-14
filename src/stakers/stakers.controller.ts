@@ -13,7 +13,7 @@ import {
   NativeStakeBalanceDto,
   AllNativeStakeBalancesDto,
   SnapshotsIntervalDto,
-  AllStakeBalancesDto,
+  StakerBalancesDto,
 } from '../snapshot/snapshot.dto';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 import { StakersService } from './stakers.service';
@@ -31,14 +31,14 @@ export class StakersController {
   @ApiResponse({
     status: 200,
     description: 'The records were successfully fetched.',
-    type: AllStakeBalancesDto,
+    type: StakerBalancesDto,
   })
   @UseInterceptors(HttpDateCacheInterceptor)
   @CacheTTL(60e3)
   async getAllStakes(
     @Param('pubkey') pubkey: string,
     @Query() query: SnapshotsIntervalDto,
-  ): Promise<AllStakeBalancesDto> {
+  ): Promise<StakerBalancesDto> {
     validateDateInterval(query.startDate, query.endDate);
     const result = await this.stakersService.getAllStakeBalances(
       pubkey,

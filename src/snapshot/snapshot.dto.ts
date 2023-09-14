@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsOptional } from 'class-validator';
+import { IsArray, IsDateString, IsNumber, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsValidDate } from 'src/decorators/snapshots-date.decorator';
 
@@ -48,6 +48,15 @@ export class AllNativeStakeBalancesDto {
   [owner: string]: NativeStakeBalanceDto[];
 }
 
+export class StakerBalancesDto {
+  @ApiProperty()
+  owner: string;
+
+  @ApiProperty()
+  @IsArray()
+  balances: StakeBalanceDto[];
+}
+
 export class StakeBalanceDto {
   @IsNumber()
   @ApiProperty()
@@ -64,10 +73,6 @@ export class StakeBalanceDto {
   @IsDateString()
   @ApiProperty()
   createdAt: string;
-}
-
-export class AllStakeBalancesDto {
-  [owner: string]: StakeBalanceDto[];
 }
 
 export class SnapshotsIntervalDto {

@@ -4,7 +4,7 @@ import { RdsService } from 'src/rds/rds.service';
 import {
   NativeStakeBalanceDto,
   AllNativeStakeBalancesDto,
-  AllStakeBalancesDto,
+  StakerBalancesDto,
 } from '../snapshot/snapshot.dto';
 
 @Injectable()
@@ -96,7 +96,7 @@ export class StakersService {
     pubkey: string,
     startDate: string,
     endDate: string,
-  ): Promise<AllStakeBalancesDto | null> {
+  ): Promise<StakerBalancesDto | null> {
     if (!startDate) {
       startDate = new Date(0).toISOString();
     }
@@ -106,18 +106,19 @@ export class StakersService {
     }
 
     const result = await this.rdsService.pool.any(sql.unsafe`
-        SELECT 
-            COALESCE(msol_holders.owner, native_stake_accounts.withdraw_authority) AS owner, 
-            COALESCE(native_stake_accounts.amount, 0) AS native_amount,
-            COALESCE(msol_holders.amount, 0) AS liquid_amount,
-            snapshots.slot AS slot,
-            snapshots.created_at AS created_at
-        FROM snapshots
-        LEFT JOIN msol_holders ON snapshots.snapshot_id = msol_holders.snapshot_id
-        AND msol_holders.owner = ${pubkey}
-        LEFT JOIN native_stake_accounts ON snapshots.snapshot_id = native_stake_accounts.snapshot_id
-        AND native_stake_accounts.withdraw_authority = ${pubkey}
-        WHERE snapshots.created_at BETWEEN ${startDate} AND ${endDate}
+        WITH native_holdings AS (
+          SELECT native_stake_accounts.snapshot_id AS native_snapshot_id, COALESCE(native_stake_accounts.amount, 0) as native_amount
+          FROM native_stake_accounts
+          JOIN snapshots ON native_stake_accounts.snapshot_id = snapshots.snapshot_id
+          WHERE native_stake_accounts.withdraw_authority = ${pubkey}
+        )
+
+        SELECT msol_holders.snapshot_id, msol_holders.owner AS owner, COALESCE(amount, 0) as liquid_amount,
+        COALESCE(native_amount, 0) as native_amount, slot, created_at
+        FROM msol_holders
+        LEFT JOIN native_holdings ON msol_holders.snapshot_id = native_holdings.native_snapshot_id
+        LEFT JOIN snapshots ON msol_holders.snapshot_id = snapshots.snapshot_id
+        WHERE msol_holders.owner = ${pubkey} AND snapshots.created_at BETWEEN ${startDate} AND ${endDate}
       `);
 
     if (!result || result.length === 0) {
@@ -125,7 +126,10 @@ export class StakersService {
       return null;
     }
 
-    const ownerBalances: AllStakeBalancesDto = {};
+    const userData: StakerBalancesDto = {
+      owner: pubkey,
+      balances: [],
+    };
 
     for (const balance of result) {
       const balanceDto = {
@@ -135,13 +139,9 @@ export class StakersService {
         createdAt: balance.created_at,
       };
 
-      if (!ownerBalances[balance.owner]) {
-        ownerBalances[balance.owner] = [];
-      }
-
-      ownerBalances[balance.owner]?.push(balanceDto);
+      userData.balances.push(balanceDto);
     }
 
-    return ownerBalances;
+    return userData;
   }
 }
