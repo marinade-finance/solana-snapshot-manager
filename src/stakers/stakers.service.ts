@@ -106,19 +106,23 @@ export class StakersService {
     }
 
     const result = await this.rdsService.pool.any(sql.unsafe`
-        WITH native_holdings AS (
-          SELECT native_stake_accounts.snapshot_id AS native_snapshot_id, COALESCE(native_stake_accounts.amount, 0) as native_amount
-          FROM native_stake_accounts
-          JOIN snapshots ON native_stake_accounts.snapshot_id = snapshots.snapshot_id
-          WHERE native_stake_accounts.withdraw_authority = ${pubkey}
-        )
+        WITH 
+            native_holdings AS (
+                  SELECT native_stake_accounts.snapshot_id AS native_snapshot_id, COALESCE(native_stake_accounts.amount, 0) as native_amount
+                  FROM native_stake_accounts
+                  WHERE native_stake_accounts.withdraw_authority = ${pubkey}
+                ),
+            liquid_holdings AS (
+                SELECT msol_holders.snapshot_id as liquid_snapshot_id, COALESCE(msol_holders.amount, 0) as liquid_amount
+                FROM msol_holders
+                WHERE msol_holders.owner = ${pubkey}
+            )
 
-        SELECT msol_holders.snapshot_id, msol_holders.owner AS owner, COALESCE(amount, 0) as liquid_amount,
-        COALESCE(native_amount, 0) as native_amount, slot, created_at
-        FROM msol_holders
-        LEFT JOIN native_holdings ON msol_holders.snapshot_id = native_holdings.native_snapshot_id
-        LEFT JOIN snapshots ON msol_holders.snapshot_id = snapshots.snapshot_id
-        WHERE msol_holders.owner = ${pubkey} AND snapshots.created_at BETWEEN ${startDate} AND ${endDate}
+        SELECT COALESCE(native_holdings.native_amount, 0) as native_amount, COALESCE(liquid_holdings.liquid_amount, 0) as liquid_amount, created_at, slot
+        FROM snapshots
+        LEFT JOIN native_holdings ON snapshots.snapshot_id = native_holdings.native_snapshot_id
+        LEFT JOIN liquid_holdings ON snapshots.snapshot_id = liquid_holdings.liquid_snapshot_id
+        WHERE snapshots.created_at BETWEEN ${startDate} AND ${endDate}
       `);
 
     if (!result || result.length === 0) {
