@@ -107,15 +107,17 @@ export class StakersService {
 
     const result = await this.rdsService.pool.any(sql.unsafe`
         SELECT 
-          msol_holders.owner, 
-          COALESCE(native_stake_accounts.amount, 0) as native_amount,
-          COALESCE(msol_holders.amount, 0) as liquid_amount,
-          snapshots.slot as slot,
-          snapshots.created_at as created_at
-        FROM msol_holders
-        LEFT JOIN snapshots ON snapshots.snapshot_id = msol_holders.snapshot_id
-        LEFT JOIN native_stake_accounts ON msol_holders.snapshot_id = native_stake_accounts.snapshot_id AND msol_holders.owner = native_stake_accounts.withdraw_authority
-		    WHERE snapshots.created_at >= ${startDate} AND snapshots.created_at <= ${endDate} AND msol_holders.owner = ${pubkey}
+            COALESCE(msol_holders.owner, native_stake_accounts.withdraw_authority) AS owner, 
+            COALESCE(native_stake_accounts.amount, 0) AS native_amount,
+            COALESCE(msol_holders.amount, 0) AS liquid_amount,
+            snapshots.slot AS slot,
+            snapshots.created_at AS created_at
+        FROM snapshots
+        LEFT JOIN msol_holders ON snapshots.snapshot_id = msol_holders.snapshot_id
+        AND msol_holders.owner = ${pubkey}
+        LEFT JOIN native_stake_accounts ON snapshots.snapshot_id = native_stake_accounts.snapshot_id
+        AND native_stake_accounts.withdraw_authority = ${pubkey}
+        WHERE snapshots.created_at BETWEEN ${startDate} AND ${endDate}
       `);
 
     if (!result || result.length === 0) {
