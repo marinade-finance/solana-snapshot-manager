@@ -66,7 +66,7 @@ export class StakersService {
             SELECT 
                 withdraw_authority, 
                 native_stake_accounts.snapshot_id AS native_snapshot_id, 
-                COALESCE(native_stake_accounts.amount, 0) as native_amount
+                COALESCE(native_stake_accounts.amount, 0) as amount
             FROM native_stake_accounts
         ),
         distinct_authorities AS (
@@ -81,7 +81,7 @@ export class StakersService {
 
         SELECT 
             da.withdraw_authority,
-            COALESCE(nh.native_amount, 0) as native_amount,
+            COALESCE(nh.amount, 0) as amount,
             sf.created_at,
             sf.slot
         FROM distinct_authorities da
