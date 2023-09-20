@@ -62,10 +62,32 @@ export class StakersService {
     }
 
     const result = await this.rdsService.pool.any(sql.unsafe`
-        SELECT *
-        FROM native_stake_accounts
-        LEFT JOIN snapshots ON snapshots.snapshot_id = native_stake_accounts.snapshot_id
-        WHERE snapshots.created_at >= ${startDate} AND snapshots.created_at <= ${endDate}
+        WITH native_holdings AS (
+            SELECT 
+                withdraw_authority, 
+                native_stake_accounts.snapshot_id AS native_snapshot_id, 
+                COALESCE(native_stake_accounts.amount, 0) as amount
+            FROM native_stake_accounts
+        ),
+        distinct_authorities AS (
+            SELECT DISTINCT withdraw_authority
+            FROM native_holdings
+        ),
+        snapshots_filtered AS (
+            SELECT snapshot_id, created_at, slot
+            FROM snapshots
+            WHERE created_at BETWEEN ${startDate} AND ${endDate}
+        )
+
+        SELECT 
+            da.withdraw_authority,
+            COALESCE(nh.amount, 0) as amount,
+            sf.created_at,
+            sf.slot
+        FROM distinct_authorities da
+        CROSS JOIN snapshots_filtered sf
+        LEFT JOIN native_holdings nh ON da.withdraw_authority = nh.withdraw_authority AND sf.snapshot_id = nh.native_snapshot_id
+        ORDER BY sf.created_at;
       `);
 
     if (!result || result.length === 0) {
