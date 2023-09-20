@@ -96,7 +96,7 @@ export class ParseCommand extends CommandRunner {
     const veMNDEHolders: Record<string, VeMNDEHolderRecord> = {};
     const nativeStakers: Record<string, NativeStakerRecord> = {};
 
-    for await (const parsedRecord of this.parserService.parse(sqlite)) {
+    for await (const parsedRecord of this.parserService.parse(sqlite, slot)) {
       csvWriter?.write(parsedRecord);
       const holderRecord =
         holders[parsedRecord.pubkey] ??

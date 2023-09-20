@@ -25,6 +25,16 @@ import {
 } from '@blockworks-foundation/mango-v4';
 import { Wallet } from '@coral-xyz/anchor';
 import vaults from 'src/vaults/vaults';
+import {
+  VAULT_BASE_KEY,
+  PROGRAM_ID as METEORA_VAULT_PROGRAM_ID,
+} from '@mercurial-finance/vault-sdk/dist/cjs/src/vault/constants';
+import {
+  VaultState,
+  calculateWithdrawableAmount,
+  getAmountByShare,
+  getVaultPdas,
+} from '@mercurial-finance/vault-sdk';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -33,7 +43,8 @@ const enum Source {
   RAYDIUM_V3 = 'RAYDIUM_V3',
   SOLEND = 'SOLEND',
   TULIP = 'TULIP',
-  MERCURIAL = 'MERCURIAL',
+  MERCURIAL_POOLS = 'MERCURIAL_POOLS',
+  MERCURIAL_METEORA_VAULTS = 'MERCURIAL_METEORA_VAULTS',
   SABER = 'SABER',
   FRIKTION = 'FRIKTION',
   PORT = 'PORT',
@@ -73,14 +84,19 @@ export class ParserService {
 
   async *parsedRecords(
     db: SQLite.Database,
+    slotTimestamp: number,
   ): AsyncGenerator<[Record<string, BN>, Source]> {
     yield [this.mSolHolders(db), Source.WALLET];
-    yield [await this.orcaWhrilpools(db), Source.ORCA];
+    yield [await this.orcaWhirlpools(db), Source.ORCA];
     yield [await this.raydiumV2(db), Source.RAYDIUM_V2];
     yield [await this.raydiumV3(db), Source.RAYDIUM_V3];
     yield [this.solend(db), Source.SOLEND];
     yield [this.tulip(db), Source.TULIP];
-    yield [this.mercurial(db), Source.MERCURIAL];
+    yield [this.mercurial_pools(db), Source.MERCURIAL_POOLS];
+    yield [
+      await this.mercurial_meteora_vaults(db, slotTimestamp),
+      Source.MERCURIAL_METEORA_VAULTS,
+    ];
     yield [this.saber(db), Source.SABER];
     yield [this.friktion(db), Source.FRIKTION];
     yield [this.port(db), Source.PORT];
@@ -106,9 +122,10 @@ export class ParserService {
     const raydiumLiquidityPools = (
       await this.getRaydiumLiquidityLpsAndMsolVaults()
     ).map(({ lp }) => lp);
-    const mercurialMints = this.getMercurialLpsAndMsolVaults().map(
+    const mercurialPoolsMints = this.getMercurialPoolsLpsAndMsol().map(
       ({ lp }) => lp,
     );
+    const meteoraVaults = await this.getMercurialMeteoraVaultsLpsAndMsol();
     const solend_reserve_info =
       await this.solanaService.connection.getAccountInfo(
         new PublicKey(SOLEND_RESERVE_ADDR),
@@ -154,7 +171,8 @@ export class ParserService {
         TUM_SOL_MINT,
         SABER_MSOL_SUPPLY,
         ...raydiumLiquidityPools,
-        ...mercurialMints,
+        ...mercurialPoolsMints,
+        ...meteoraVaults.map((v) => v.lp),
       ].join(','),
       whirlpool_pool_address: whirlpools
         .map(({ address }) => address)
@@ -165,10 +183,14 @@ export class ParserService {
       mrgn_bank_data: mrgn_bank_info.data.toString('base64'),
       solend_reserve_data: solend_reserve_info.data.toString('base64'),
       mango_bank_deposit_index: mango_bank_deposit_index,
+      meteora_vaults: meteoraVaults.map((v) => v.vault).join(','),
     };
   }
 
-  async *parse(sqlite: string): AsyncGenerator<SnapshotRecord> {
+  async *parse(
+    sqlite: string,
+    slot: number | undefined,
+  ): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
 
@@ -178,7 +200,29 @@ export class ParserService {
       throw new Error('Failed to get mSOL supply!');
     }
 
-    for await (const [partialRecords, source] of this.parsedRecords(db)) {
+    const snapshotSlot = await this.getSnapshot(db);
+    if (slot === undefined && snapshotSlot === null) {
+      throw new Error(
+        'Failed to get snapshot slot. ' +
+          'Please provide parameter or load db data containing the info.',
+      );
+    }
+    if (slot !== undefined && snapshotSlot !== null && slot !== snapshotSlot) {
+      throw new Error(
+        'Provided slot and snapshot slot do not match. ' +
+          'Mismatch on DB data and the slot parameter occurred.',
+      );
+    }
+    const takenSlot = slot ?? snapshotSlot ?? -1;
+    const slotTimestamp = await this.getBlockTime(takenSlot);
+    if (slotTimestamp === null) {
+      throw new Error('Failed to get timestamp for the slot: ' + takenSlot);
+    }
+
+    for await (const [partialRecords, source] of this.parsedRecords(
+      db,
+      slotTimestamp,
+    )) {
       const sum = Object.entries(partialRecords).reduce((sum, [key, value]) => {
         return vaults.includes(key) ? sum : sum.add(value);
       }, new BN(0));
@@ -271,6 +315,17 @@ export class ParserService {
     return record ? new BN(record.amount) : null;
   }
 
+  private async getSnapshot(db: SQLite.Database): Promise<number | null> {
+    const [record] = db
+      .prepare(`SELECT cast(slot as text) as slot FROM snapshot`)
+      .all() as { slot: string }[];
+    return record ? Number(record.slot) : null;
+  }
+
+  private async getBlockTime(slot: number): Promise<number | null> {
+    return await this.solanaService.connection.getBlockTime(slot);
+  }
+
   private mSolHolders(db: SQLite.Database): Record<string, BN> {
     const buf: Record<string, BN> = {};
     this.logger.log('Parsing mSOL holders');
@@ -339,7 +394,7 @@ export class ParserService {
     return mSolWhirlpools;
   }
 
-  private async orcaWhrilpools(
+  private async orcaWhirlpools(
     db: SQLite.Database,
   ): Promise<Record<string, BN>> {
     this.logger.log('Parsing Orca Whirlpools');
@@ -377,14 +432,14 @@ export class ParserService {
       count: whirlpoolSnapshots.length,
     });
 
-    for (const whirlpoolSnaphot of whirlpoolSnapshots) {
+    for (const whirlpoolSnapshot of whirlpoolSnapshots) {
       const whirlpoolMsolSum = new BN(0);
       this.logger.log('processing Orca whirlpool', {
-        pubkey: whirlpoolSnaphot.pubkey,
+        pubkey: whirlpoolSnapshot.pubkey,
       });
       const { mSolAmountSelector } =
         whirlpools.find(
-          (whirlpool) => whirlpool.address === whirlpoolSnaphot.pubkey,
+          (whirlpool) => whirlpool.address === whirlpoolSnapshot.pubkey,
         ) ?? {};
       if (!mSolAmountSelector) {
         throw new Error('Failed to find the mSol amount selector!');
@@ -401,7 +456,7 @@ export class ParserService {
             WHERE orca.position_mint = token_account.mint AND orca.pool = ?
         `,
         )
-        .all(whirlpoolSnaphot.pubkey) as {
+        .all(whirlpoolSnapshot.pubkey) as {
         price_lower: string;
         price_upper: string;
         liquidity: string;
@@ -410,7 +465,7 @@ export class ParserService {
       result.forEach((row) => {
         const amounts = whirlpool.PoolUtil.getTokenAmountsFromLiquidity(
           new BN(row.liquidity),
-          new BN(whirlpoolSnaphot.sqrt_price),
+          new BN(whirlpoolSnapshot.sqrt_price),
           new BN(row.price_lower),
           new BN(row.price_upper),
           true,
@@ -420,7 +475,7 @@ export class ParserService {
           mSolAmountSelector(amounts),
         );
       });
-      this.logger.log('Orce whirlpool summed', {
+      this.logger.log('Orca whirlpool summed', {
         sum: mlamportsToMsol(whirlpoolMsolSum),
       });
     }
@@ -665,44 +720,56 @@ export class ParserService {
     return buf;
   }
 
-  private getMercurialLpsAndMsolVaults() {
-    return [
+  private getMercurialPoolsLpsAndMsol() {
+    // pools from https://app.meteora.ag/amm/pools
+    const result = [
       {
+        // Mercurial AMM (mSOL-SOL) uses the Meteora vaults to store liquidity (TODO...)
+        pool: 'HcjZvfeSNJbNkfLD4eEcRBr96AD3w1GpmMppaeRZf7ur',
         lp: 'B2uEs9zjnz222hfUaUuRgesryUEYwy3JGuWe31sE9gsG',
-        vault: '3ifhD4Ywaa8aBZAaQSqYgN4Q1kaFArioLU8uumJMaqkE',
+        vaultMsolAta: '3ifhD4Ywaa8aBZAaQSqYgN4Q1kaFArioLU8uumJMaqkE',
       },
       {
+        // Mercurial Stable Swap (mSOL-2Pool)
+        pool: 'MAR1zHjHaQcniE2gXsDptkyKUnNfMEsLBVcfP7vLyv7',
         lp: '7HqhfUqig7kekN8FbJCtQ36VgdXKriZWQ62rTve9ZmQ',
-        vault: 'GM48qFn8rnqhyNMrBHyPJgUVwXQ1JvMbcu3b9zkThW9L',
+        vaultMsolAta: 'GM48qFn8rnqhyNMrBHyPJgUVwXQ1JvMbcu3b9zkThW9L',
       },
     ] as const;
+    this.logger.log('Mercurial Meteora mSol pools', { count: result.length });
+    return result;
   }
 
-  private mercurial(db: SQLite.Database): Record<string, BN> {
-    // https://app.meteora.ag/amm/pools
-    this.logger.log('Parsing Mercurial');
+  private mercurial_pools(db: SQLite.Database): Record<string, BN> {
+    this.logger.log('Parsing Mercurial Meteora Pools');
     const buf: Record<string, BN> = {};
 
-    for (const { lp, vault } of this.getMercurialLpsAndMsolVaults()) {
-      const vaultAmount = this.getTokenAccountBalance(db, vault);
+    for (const { lp, vaultMsolAta } of this.getMercurialPoolsLpsAndMsol()) {
+      const vaultAmount = this.getTokenAccountBalance(db, vaultMsolAta);
       if (!vaultAmount) {
-        this.logger.warn('Mercurial pool mSOL vault missing from DB', {
-          vault,
-          lp,
-        });
+        this.logger.warn(
+          'Mercurial pool mSOL vault token account missing from DB',
+          {
+            vaultMsolAta,
+            lp,
+          },
+        );
         continue;
       }
 
       const lpSupply = this.getMintSupply(db, lp);
       if (!lpSupply) {
         this.logger.warn('Mercurial pool LP mint missing from DB', {
-          vault,
+          vaultMsolAta,
           lp,
         });
         continue;
       }
 
-      this.logger.log('Processing Mercurial liquidity pool', { vault, lp });
+      this.logger.log('Processing Mercurial liquidity pool', {
+        vaultMsolAta,
+        lp,
+      });
 
       const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, lp);
       tokenAccounts.forEach((tokenAccount) => {
@@ -711,6 +778,153 @@ export class ParserService {
         );
       });
     }
+
+    return buf;
+  }
+
+  private async getMercurialMeteoraVaultsJson() {
+    // loading meteora shared vaults (msol vault possibly is 8p1VKP45hhqq5iZG5fNGoi7ucme8nFLeChoDWNy7rWFm)
+    // in future multiple pools for a token could be configured (mentioned in doc, not clear what other consequences are)
+    const response = await fetch(
+      'https://merv2-api.mercurial.finance/vault_info',
+    );
+    return await response.json();
+  }
+
+  private async getMercurialMeteoraVaultsLpsAndMsol() {
+    type MeteoraVaultJson = {
+      symbol: string;
+      pubkey: string;
+      token_address: string;
+      lp_mint: string;
+    };
+
+    const vaults = await this.getMercurialMeteoraVaultsJson();
+
+    const msolVault: MeteoraVaultJson[] = vaults
+      .filter((vault: MeteoraVaultJson) => vault.token_address === MSOL_MINT)
+      .map((vault: MeteoraVaultJson) => {
+        return { lp_mint: vault.lp_mint, pubkey: vault.pubkey };
+      });
+    if (msolVault === undefined || msolVault[0] === undefined) {
+      throw new Error('Meteora mSOL vault not found!');
+    }
+    if (msolVault.length !== 1) {
+      throw new Error(
+        'Meteora changed to provide multiple MSol vaults, correct VAULT_BASE_KEYs needs to be found!',
+      );
+    }
+    const vaultPdas = getVaultPdas(
+      new PublicKey(MSOL_MINT),
+      new PublicKey(METEORA_VAULT_PROGRAM_ID),
+      VAULT_BASE_KEY,
+    );
+
+    this.logger.log('Mercurial Meteora mSol vaults', { count: 1 });
+    return [
+      {
+        lp: msolVault[0].lp_mint,
+        vault: msolVault[0].pubkey,
+        msolVaultAta: vaultPdas.tokenVaultPda.toBase58(),
+      },
+    ];
+  }
+
+  private async mercurial_meteora_vaults(
+    db: SQLite.Database,
+    snapshotTimestamp: number,
+  ): Promise<Record<string, BN>> {
+    this.logger.log('Parsing Meteora Vaults');
+    const buf: Record<string, BN> = {};
+
+    const dbVaults = db
+      .prepare(
+        `
+            SELECT pubkey,
+            lp_mint,
+            token_vault,
+            cast(last_report as text) as last_report,
+            cast (locked_profit_degradation as text) as locked_profit_degradation,
+            cast (last_updated_locked_profit as text) as last_updated_locked_profit,
+            cast (total_amount as text) as total_amount
+            FROM meteora_vaults
+        `,
+      )
+      .all() as {
+      pubkey: string;
+      lp_mint: string;
+      token_vault: string;
+      last_report: string;
+      locked_profit_degradation: string;
+      last_updated_locked_profit: string;
+      total_amount: string;
+    }[];
+
+    let totalVaultMSOLs = new BN(0);
+    for (const dbVault of dbVaults) {
+      const msolVaultAmount = this.getTokenAccountBalance(
+        db,
+        dbVault.token_vault,
+      );
+      if (!msolVaultAmount) {
+        this.logger.warn(
+          'Mercurial Meteora vault mSOL vault token account missing from DB',
+          {
+            vault: dbVault.pubkey,
+            msol_token_account: dbVault.token_vault,
+            lp_mint: dbVault.lp_mint,
+          },
+        );
+        return buf;
+      }
+      totalVaultMSOLs = totalVaultMSOLs.add(msolVaultAmount);
+
+      const lpSupply = this.getMintSupply(db, dbVault.lp_mint);
+      if (!lpSupply) {
+        this.logger.warn('Mercurial Meteora vault LP mint missing from DB', {
+          vault: dbVault.pubkey,
+          msol_token_account: dbVault.token_vault,
+          lp_mint: dbVault.lp_mint,
+        });
+        return buf;
+      }
+
+      // calculate withdrawable amount, using required data from DB
+      // and retyping for Anchor type to use the calculation from SDK
+      // see https://github.com/mercurial-finance/vault-sdk/tree/9ea05048146878f5e22549ce270d0e5d6776ccc9/ts-client#install
+      const vaultState = {
+        lockedProfitTracker: {
+          lastReport: new BN(dbVault.last_report),
+          lockedProfitDegradation: new BN(dbVault.locked_profit_degradation),
+          lastUpdatedLockedProfit: new BN(dbVault.last_updated_locked_profit),
+        },
+        totalAmount: new BN(dbVault.total_amount),
+      };
+      const unlockedAmount = calculateWithdrawableAmount(
+        snapshotTimestamp,
+        vaultState as unknown as VaultState,
+      );
+
+      const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(
+        db,
+        dbVault.lp_mint,
+      );
+      tokenAccounts.forEach((tokenAccount) => {
+        const userShare = new BN(tokenAccount.amount);
+        const underlyingShare = getAmountByShare(
+          userShare,
+          unlockedAmount,
+          lpSupply,
+        );
+        buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(
+          new BN(underlyingShare).mul(msolVaultAmount).div(lpSupply),
+        );
+      });
+    }
+    this.logger.debug(
+      'Total Meteora Vaults mSOLs',
+      mlamportsToMsol(totalVaultMSOLs),
+    );
 
     return buf;
   }
