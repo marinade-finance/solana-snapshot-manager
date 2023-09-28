@@ -222,7 +222,7 @@ export class VotesService {
     }
 
     if (!endDate) {
-      endDate = new Date(Date.now()).toISOString();
+      endDate = new Date().toISOString();
     }
 
     const result = await this.rdsService.pool.any(sql.unsafe`
