@@ -13,6 +13,7 @@ import {
   VeMNDEVoteRecordsDto,
   MSolVoteSnapshotsDto,
   SnapshotsIntervalDto,
+  VeMNDEVoteSnapshotsDto,
 } from './votes.dto';
 import { VotesService } from './votes.service';
 import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
@@ -82,6 +83,31 @@ export class VotesController {
       throw new HttpException('No records available', HttpStatus.NOT_FOUND);
     }
 
+    return result;
+  }
+
+  @Get('/vemnde/all')
+  @ApiOperation({ summary: 'Fetch all veMNDE votes' })
+  @ApiResponse({
+    status: 200,
+    description: 'The records are successfully fetched.',
+    type: VeMNDEVoteSnapshotsDto,
+  })
+  @UseInterceptors(HttpDateCacheInterceptor)
+  @CacheTTL(60e3)
+  async getVeMNDEBalance(
+    @Query() query: SnapshotsIntervalDto,
+  ): Promise<VeMNDEVoteSnapshotsDto> {
+    validateDateInterval(query.startDate, query.endDate);
+
+    const result = await this.votesService.getVeMNDEVotes(
+      query.startDate,
+      query.endDate,
+    );
+
+    if (!result) {
+      throw new HttpException('No records available', HttpStatus.NOT_FOUND);
+    }
     return result;
   }
 }

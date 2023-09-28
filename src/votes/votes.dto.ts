@@ -94,3 +94,12 @@ export class VeMNDEVoteRecordsDto {
   @ApiProperty()
   voteRecordsCreatedAt: string;
 }
+
+export class VeMNDEVoteSnapshotsDto {
+  @ValidateNested()
+  @ApiProperty({
+    type: VeMNDEVoteRecordsDto,
+    isArray: true,
+  })
+  snapshots: VeMNDEVoteRecordsDto[];
+}
