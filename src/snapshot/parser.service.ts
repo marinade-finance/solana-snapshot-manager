@@ -187,10 +187,7 @@ export class ParserService {
     };
   }
 
-  async *parse(
-    sqlite: string,
-    slot: number | undefined,
-  ): AsyncGenerator<SnapshotRecord> {
+  async *parse(sqlite: string, slot: number): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
 
@@ -200,23 +197,9 @@ export class ParserService {
       throw new Error('Failed to get mSOL supply!');
     }
 
-    const snapshotSlot = await this.getSnapshot(db);
-    if (slot === undefined && snapshotSlot === null) {
-      throw new Error(
-        'Failed to get snapshot slot. ' +
-          'Please provide parameter or load db data containing the info.',
-      );
-    }
-    if (slot !== undefined && snapshotSlot !== null && slot !== snapshotSlot) {
-      throw new Error(
-        'Provided slot and snapshot slot do not match. ' +
-          'Mismatch on DB data and the slot parameter occurred.',
-      );
-    }
-    const takenSlot = slot ?? snapshotSlot ?? -1;
-    const slotTimestamp = await this.getBlockTime(takenSlot);
+    const slotTimestamp = await this.getBlockTime(slot);
     if (slotTimestamp === null) {
-      throw new Error('Failed to get timestamp for the slot: ' + takenSlot);
+      throw new Error('Failed to get timestamp for the slot: ' + slot);
     }
 
     for await (const [partialRecords, source] of this.parsedRecords(
@@ -313,13 +296,6 @@ export class ParserService {
       .all(pubkey) as { amount: string }[];
 
     return record ? new BN(record.amount) : null;
-  }
-
-  private async getSnapshot(db: SQLite.Database): Promise<number | null> {
-    const [record] = db
-      .prepare(`SELECT cast(slot as text) as slot FROM snapshot`)
-      .all() as { slot: string }[];
-    return record ? Number(record.slot) : null;
   }
 
   private async getBlockTime(slot: number): Promise<number | null> {
