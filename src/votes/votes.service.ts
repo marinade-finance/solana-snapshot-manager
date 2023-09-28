@@ -12,7 +12,9 @@ import {
   MSolVoteRecordDto,
   MSolVoteRecordsDto,
   MSolVoteSnapshotsDto,
+  VeMNDEVoteRecordDto,
   VeMNDEVoteRecordsDto,
+  VeMNDEVoteSnapshotsDto,
 } from './votes.dto';
 
 @Injectable()
@@ -207,6 +209,95 @@ export class VotesService {
         validatorVoteAccount: vote_account,
       })),
     };
+  }
+
+  async getVeMNDEVotes(
+    startDate: string,
+    endDate: string,
+  ): Promise<VeMNDEVoteSnapshotsDto | null> {
+    this.logger.log('Fetching all veMNDE votes from DB...');
+
+    if (!startDate) {
+      startDate = new Date(0).toISOString();
+    }
+
+    if (!endDate) {
+      endDate = new Date().toISOString();
+    }
+
+    const result = await this.rdsService.pool.any(sql.unsafe`
+            WITH last_snapshot AS (
+                SELECT snapshot_id, created_at
+                FROM (
+                    SELECT snapshot_id, created_at,
+                    ROW_NUMBER() OVER (PARTITION BY DATE(created_at) ORDER BY snapshot_id DESC) as rn
+                    FROM snapshots
+                ) t
+                WHERE t.rn = 1
+            )
+            SELECT
+                ls.snapshot_id as vemnde_snapshot_id,
+                ls.created_at as vemnde_snapshot_created_at,
+                vb.created_at as vote_records_created_at,
+                vh.amount,
+                mv.owner as owner,
+                mv.vote_account as vote_account
+            FROM 
+                msol_votes_batches vb
+            RIGHT JOIN 
+                msol_votes mv ON mv.batch_id = vb.batch_id
+            INNER JOIN 
+                last_snapshot ls ON DATE(ls.created_at) = DATE(vb.created_at)
+            INNER JOIN 
+                vemnde_holders vh ON vh.snapshot_id = ls.snapshot_id AND vh.owner = mv.owner
+            WHERE vb.created_at >= ${startDate} AND vb.created_at <= ${endDate}
+            ORDER BY vb.batch_id DESC
+  `);
+    this.logger.log('All vote records fetched', { count: result.length });
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    const groupedBySnapshotId = result.reduce((groups, row) => {
+      const snapshotId = row.vemnde_snapshot_id;
+      if (!groups[snapshotId]) {
+        groups[snapshotId] = [];
+      }
+      groups[snapshotId].push(row);
+      return groups;
+    }, {});
+
+    const snapshots = Object.entries(groupedBySnapshotId).map(([, records]) => {
+      const recordsDto = new VeMNDEVoteRecordsDto();
+      recordsDto.records = (records as any)
+        .map((record: any) => {
+          const recordDto = new VeMNDEVoteRecordDto();
+          recordDto.validatorVoteAccount = record.vote_account;
+          recordDto.amount = record.amount;
+          recordDto.tokenOwner = record.owner;
+          return recordDto;
+        })
+        .filter(
+          (value: any, index: any, self: any) =>
+            self.findIndex((v: any) => v.tokenOwner === value.tokenOwner) ===
+            index,
+        );
+
+      recordsDto.veMNDESnapshotCreatedAt = new Date(
+        (records as any)[0].vemnde_snapshot_created_at as any,
+      ).toISOString();
+      recordsDto.voteRecordsCreatedAt = (
+        (records as any)[0] as any
+      )?.vote_records_created_at;
+
+      return recordsDto;
+    });
+
+    const snapshotsDto = new VeMNDEVoteSnapshotsDto();
+    snapshotsDto.snapshots = snapshots;
+
+    return snapshotsDto;
   }
 
   async createMSolBatch(): Promise<number> {
