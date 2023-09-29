@@ -6,6 +6,7 @@ import {
   NativeStakeBalanceDto,
   VeMNDEBalanceDto,
 } from './snapshot.dto';
+import { SolanaService } from 'src/solana/solana.service';
 
 export type HolderRecord = {
   holder: string;
@@ -29,7 +30,10 @@ export type NativeStakerRecord = {
 export class SnapshotService {
   private readonly logger = new Logger(SnapshotService.name);
 
-  constructor(private readonly rdsService: RdsService) {}
+  constructor(
+    private readonly rdsService: RdsService,
+    private readonly solanaService: SolanaService,
+  ) {}
 
   async getNativeStakeBalanceFromLastSnaphot(
     startDate: string,
@@ -60,6 +64,7 @@ export class SnapshotService {
         amount: balance.amount,
         slot: balance.slot,
         createdAt: balance.created_at,
+        snapshotCreatedAt: balance.blocktime,
       });
     }
 
@@ -122,8 +127,9 @@ export class SnapshotService {
   }
 
   async createSnapshot(slot: number): Promise<number> {
+    const blockTime = await this.solanaService.getBlockTime(slot);
     const { snapshot_id: snapshotId } = await this.rdsService.pool.one(
-      sql.unsafe`INSERT INTO snapshots (slot) VALUES (${slot}) RETURNING snapshot_id`,
+      sql.unsafe`INSERT INTO snapshots (slot, blocktime) VALUES (${slot}, ${blockTime.toISOString()}) RETURNING snapshot_id`,
     );
 
     return snapshotId;
