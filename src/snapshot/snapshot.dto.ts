@@ -42,6 +42,10 @@ export class NativeStakeBalanceDto {
   @IsDateString()
   @ApiProperty()
   createdAt: string;
+
+  @IsDateString()
+  @ApiProperty()
+  snapshotCreatedAt: string;
 }
 
 export class AllNativeStakeBalancesDto {

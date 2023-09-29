@@ -42,6 +42,7 @@ export class StakersService {
         amount: balance.amount,
         slot: balance.slot,
         createdAt: balance.created_at,
+        snapshotCreatedAt: balance.blocktime,
       });
     }
 
@@ -74,7 +75,7 @@ export class StakersService {
             FROM native_holdings
         ),
         snapshots_filtered AS (
-            SELECT snapshot_id, created_at, slot
+            SELECT snapshot_id, created_at, blocktime, slot
             FROM snapshots
             WHERE created_at BETWEEN ${startDate} AND ${endDate}
         )
@@ -83,6 +84,7 @@ export class StakersService {
             da.withdraw_authority,
             COALESCE(nh.amount, 0) as amount,
             sf.created_at,
+            sf.blocktime,
             sf.slot
         FROM distinct_authorities da
         CROSS JOIN snapshots_filtered sf
@@ -102,6 +104,7 @@ export class StakersService {
         amount: balance.amount,
         slot: balance.slot,
         createdAt: balance.created_at,
+        snapshotCreatedAt: balance.blocktime,
       };
 
       if (!ownerBalances[balance.withdraw_authority]) {

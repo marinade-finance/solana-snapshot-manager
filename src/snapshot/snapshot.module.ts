@@ -15,6 +15,7 @@ import { StakersModule } from 'src/stakers/stakers.module';
     SolanaModule,
     InterceptorsModule,
     StakersModule,
+    SolanaModule,
   ],
   controllers: [SnapshotController],
   providers: [SnapshotService, ParserService],
