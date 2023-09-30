@@ -77,6 +77,10 @@ export class StakeBalanceDto {
   @IsDateString()
   @ApiProperty()
   createdAt: string;
+
+  @IsDateString()
+  @ApiProperty()
+  snapshotCreatedAt: string;
 }
 
 export class SnapshotsIntervalDto {

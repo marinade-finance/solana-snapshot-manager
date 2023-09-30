@@ -143,7 +143,7 @@ export class StakersService {
                 WHERE msol_holders.owner = ${pubkey}
             )
 
-        SELECT COALESCE(native_holdings.native_amount, 0) as native_amount, COALESCE(liquid_holdings.liquid_amount, 0) as liquid_amount, created_at, slot
+        SELECT COALESCE(native_holdings.native_amount, 0) as native_amount, COALESCE(liquid_holdings.liquid_amount, 0) as liquid_amount, created_at, blocktime, slot
         FROM snapshots
         LEFT JOIN native_holdings ON snapshots.snapshot_id = native_holdings.native_snapshot_id
         LEFT JOIN liquid_holdings ON snapshots.snapshot_id = liquid_holdings.liquid_snapshot_id
@@ -166,6 +166,7 @@ export class StakersService {
         native_amount: balance.native_amount,
         slot: balance.slot,
         createdAt: balance.created_at,
+        snapshotCreatedAt: balance.blocktime,
       };
 
       userData.balances.push(balanceDto);
