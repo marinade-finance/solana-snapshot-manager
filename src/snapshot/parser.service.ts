@@ -820,7 +820,11 @@ export class ParserService {
 
     const msolPools = pools
       // pools with version 2 uses the vaults
-      .filter((pool: MeteoraPool) => pool.pool_token_mints.includes(MSOL_MINT) && Number(pool.pool_version) > 1)
+      .filter(
+        (pool: MeteoraPool) =>
+          pool.pool_token_mints.includes(MSOL_MINT) &&
+          Number(pool.pool_version) > 1,
+      )
       .map((pool: MeteoraPool) => {
         return { lp: pool.lp_mint, pool: pool.pool_address };
       });
@@ -879,9 +883,17 @@ export class ParserService {
     const msolPoolsMsolVaults = msolPools
       .map((pool) => {
         if (pool.token_a_mint === MSOL_MINT) {
-          return { lp: pool.lp_mint, msolVaultLPToken: pool.a_vault_lp };
+          return {
+            pubkey: pool.pubkey,
+            lp: pool.lp_mint,
+            msolVaultLPToken: pool.a_vault_lp,
+          };
         } else if (pool.token_b_mint === MSOL_MINT) {
-          return { lp: pool.lp_mint, msolVaultLPToken: pool.b_vault_lp };
+          return {
+            pubkey: pool.pubkey,
+            lp: pool.lp_mint,
+            msolVaultLPToken: pool.b_vault_lp,
+          };
         } else {
           this.logger.warn("Loaded Mercurial pool doesn't have mSOL", {
             pool,
@@ -890,29 +902,13 @@ export class ParserService {
         }
       })
       .filter((pool) => pool !== null) as {
+      pubkey: string;
       lp: string;
       msolVaultLPToken: string;
     }[];
 
     let totalVaultMSOLs = new BN(0);
     for (const dbVault of msolVaults) {
-      const msolVaultAmount = this.getTokenAccountBalance(
-        db,
-        dbVault.token_vault,
-      );
-      if (!msolVaultAmount) {
-        this.logger.warn(
-          'Mercurial Meteora vault mSOL vault token account missing from DB',
-          {
-            vault: dbVault.pubkey,
-            msol_token_account: dbVault.token_vault,
-            lp_mint: dbVault.lp_mint,
-          },
-        );
-        return buf;
-      }
-      totalVaultMSOLs = totalVaultMSOLs.add(msolVaultAmount);
-
       const lpSupply = this.getMintSupply(db, dbVault.lp_mint);
       if (!lpSupply) {
         this.logger.warn('Mercurial Meteora vault LP mint missing from DB', {
@@ -934,18 +930,14 @@ export class ParserService {
         },
         totalAmount: new BN(dbVault.total_amount),
       };
+      totalVaultMSOLs = totalVaultMSOLs.add(vaultState.totalAmount);
       const unlockedAmount = calculateWithdrawableAmount(
         snapshotTimestamp,
         vaultState as unknown as VaultState,
       );
 
       const getMSOLsByLpShare = (userLpAmount: BN) => {
-        const underlyingLpShare = getAmountByShare(
-          userLpAmount,
-          unlockedAmount,
-          lpSupply,
-        );
-        return new BN(underlyingLpShare).mul(msolVaultAmount).div(lpSupply);
+        return getAmountByShare(userLpAmount, unlockedAmount, lpSupply);
       };
 
       // 1. parsing user wallets and calculate their share
