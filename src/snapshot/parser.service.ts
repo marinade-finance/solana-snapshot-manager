@@ -813,12 +813,14 @@ export class ParserService {
       pool_token_mints: string[];
       lp_mint: string;
       pool_name: string;
+      pool_version: string;
     };
 
     const pools = await this.getMercurialAmmPoolsJson();
 
     const msolPools = pools
-      .filter((pool: MeteoraPool) => pool.pool_token_mints.includes(MSOL_MINT))
+      // pools with version 2 uses the vaults
+      .filter((pool: MeteoraPool) => pool.pool_token_mints.includes(MSOL_MINT) && Number(pool.pool_version) > 1)
       .map((pool: MeteoraPool) => {
         return { lp: pool.lp_mint, pool: pool.pool_address };
       });
