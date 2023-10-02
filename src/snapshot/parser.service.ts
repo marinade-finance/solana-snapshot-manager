@@ -40,6 +40,7 @@ const enum Source {
   DRIFT = 'DRIFT',
   MRGN = 'MRGN',
   MANGO = 'MANGO',
+  LIFINITY = 'LIFINITY',
 }
 
 type SnapshotRecord = {
@@ -87,6 +88,7 @@ export class ParserService {
     yield [this.drift(db), Source.DRIFT];
     yield [this.mrgn(db), Source.MRGN];
     yield [this.mango(db), Source.MANGO];
+    yield [this.lifinity(db), Source.LIFINITY];
   }
 
   async *parseVeMNDERecords(
@@ -629,6 +631,62 @@ export class ParserService {
     result.forEach((row) => {
       buf[row.owner] = (buf[row.owner] ?? new BN(0)).add(new BN(row.amount));
     });
+    return buf;
+  }
+
+  private getLifinityVaultsAndOwners() {
+    // Lifinity owns the 100% share of liquidity in the vaults
+    // for sake of simplicity we use hardcoded values here
+    // this was discussed with Cerba and Durden ∞ on the discord
+    const lifinityTreasury = '71hhezkHQ2dhmPySsHVCCkLggfWzPFEBdfEjbn4NCXMG';
+    // TODO: this could be changed when clarified with Durden
+    const uxdOwnershipPoolTreasury =
+      '71hhezkHQ2dhmPySsHVCCkLggfWzPFEBdfEjbn4NCXMG';
+    const result = [
+      {
+        name: 'mSOL-USDC v1',
+        msolVault: 'AymgLAHXAHLuZXqF5h8SxfmvwVQ4VykKhUJda87DUWZe',
+        owner: lifinityTreasury,
+      },
+      {
+        name: 'mSOL-UXD v1',
+        msolVault: '2u4darckm8R24hZdYQEWDQwMRuQCh1x4zDtEZr74Kiue',
+        owner: uxdOwnershipPoolTreasury,
+      },
+      {
+        name: 'mSOL-USDC v2',
+        msolVault: '5z4wU1DidgndEk4oJPsKUDyQxRgZpVWrhwVnMAU6XTJE',
+        owner: lifinityTreasury,
+      },
+      {
+        name: 'mSOL-USDT v2',
+        msolVault: '7GawBqVSriYXQYCTr5XygeRNTeHamRWeHmVFiuf6wLfK',
+        owner: lifinityTreasury,
+      },
+      {
+        name: 'MNDE-mSOL v2',
+        msolVault: '3TauBEL9fTs531NLKcaFKNr4va4XZmuvGGG13uoyq6BV',
+        owner: lifinityTreasury,
+      },
+    ] as const;
+    return result;
+  }
+
+  private lifinity(db: SQLite.Database): Record<string, BN> {
+    this.logger.log('Parsing Lifinity');
+    const buf: Record<string, BN> = {};
+    const lifinityVaults = this.getLifinityVaultsAndOwners();
+    for (const { msolVault, owner } of lifinityVaults) {
+      const vaultAmount = this.getTokenAccountBalance(db, msolVault);
+      if (!vaultAmount) {
+        this.logger.warn('Lifinity mSOL vault missing from DB', {
+          msolVault,
+          owner,
+        });
+        continue;
+      }
+      buf[owner] = (buf[owner] ?? new BN(0)).add(new BN(vaultAmount));
+    }
     return buf;
   }
 
