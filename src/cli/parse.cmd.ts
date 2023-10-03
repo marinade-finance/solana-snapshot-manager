@@ -11,9 +11,10 @@ import {
 } from 'src/snapshot/snapshot.service';
 
 type ParseCommandOptions = {
-  slot?: number;
+  slot: number;
   sqlite: string;
   csvOutput?: string;
+  psqlOutput?: boolean;
 };
 
 const prepareCsvWriter = (csvPath: string) => {
@@ -89,14 +90,17 @@ export class ParseCommand extends CommandRunner {
 
   async run(
     passedParam: string[],
-    { slot, sqlite, csvOutput }: ParseCommandOptions,
+    { slot, sqlite, csvOutput, psqlOutput }: ParseCommandOptions,
   ): Promise<void> {
+    if (!slot) {
+      throw new Error('--slot argument is required');
+    }
     const csvWriter = csvOutput ? prepareCsvWriter(csvOutput) : null;
     const holders: Record<string, HolderRecord> = {};
     const veMNDEHolders: Record<string, VeMNDEHolderRecord> = {};
     const nativeStakers: Record<string, NativeStakerRecord> = {};
 
-    for await (const parsedRecord of this.parserService.parse(sqlite)) {
+    for await (const parsedRecord of this.parserService.parse(sqlite, slot)) {
       csvWriter?.write(parsedRecord);
       const holderRecord =
         holders[parsedRecord.pubkey] ??
@@ -138,7 +142,7 @@ export class ParseCommand extends CommandRunner {
     );
     csvWriter?.end();
 
-    if (slot) {
+    if (psqlOutput) {
       const snapshotId = await this.snapshotService.createSnapshot(slot);
       await this.snapshotService.storeSnapshotNativeStakerRecords(
         snapshotId,
@@ -178,5 +182,13 @@ export class ParseCommand extends CommandRunner {
   })
   parseArgSlot(val: string): number {
     return Number(val);
+  }
+
+  @Option({
+    flags: '--psql-output',
+    description: 'Output will be dumped to PostgreSQL DB',
+  })
+  parseArgPsql(): boolean {
+    return true;
   }
 }

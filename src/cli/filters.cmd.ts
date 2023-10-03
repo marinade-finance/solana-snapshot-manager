@@ -9,7 +9,8 @@ type FiltersCommandOptions = {
 
 @Command({
   name: 'filters',
-  description: 'Prepares filters for snapshot parser',
+  description:
+    'Prepares filters for snapshot parser (project: marinade-snapshot-etl)',
 })
 export class FiltersCommand extends CommandRunner {
   private readonly _logger = new Logger(FiltersCommand.name);
