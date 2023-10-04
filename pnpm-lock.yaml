@@ -1,7 +1,7 @@
 lockfileVersion: '6.0'
 
 settings:
-  autoInstallPeers: false
+  autoInstallPeers: true
   excludeLinksFromLockfile: false
 
 dependencies:
@@ -13,10 +13,10 @@ dependencies:
     version: 0.28.1-beta.1
   '@marinade.finance/directed-stake-sdk':
     specifier: ^0.0.4
-    version: 0.0.4(@solana/web3.js@1.75.0)(bn.js@5.2.1)
+    version: 0.0.4(@solana/web3.js@1.75.0)(bn.js@5.2.1)(jsbi@4.3.0)
   '@mercurial-finance/vault-sdk':
     specifier: 0.5.1
-    version: 0.5.1
+    version: 0.5.1(@saberhq/solana-contrib@1.14.11)(@saberhq/token-utils@1.14.11)
   '@nestjs/cache-manager':
     specifier: ^1.0.0
     version: 1.0.0(@nestjs/common@9.4.0)(cache-manager@5.2.1)(reflect-metadata@0.1.13)(rxjs@7.8.0)
@@ -73,7 +73,7 @@ dependencies:
     version: 6.9.1
   nest-commander:
     specifier: ^3.6.1
-    version: 3.6.1(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(reflect-metadata@0.1.13)(rxjs@7.8.0)
+    version: 3.6.1(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(@types/inquirer@8.2.6)(reflect-metadata@0.1.13)(rxjs@7.8.0)
   nestjs-redoc:
     specifier: ^2.2.2
     version: 2.2.2(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(@nestjs/swagger@6.3.0)(reflect-metadata@0.1.13)
@@ -88,10 +88,10 @@ dependencies:
     version: 7.8.0
   slonik:
     specifier: ^33.3.0
-    version: 33.3.0(zod@3.21.4)
+    version: 33.3.0(zod@3.22.3)
   zod:
-    specifier: ^3.21.4
-    version: 3.21.4
+    specifier: ^3.22.3
+    version: 3.22.3
 
 devDependencies:
   '@nestjs/cli':
@@ -99,7 +99,7 @@ devDependencies:
     version: 9.3.0
   '@nestjs/schematics':
     specifier: ^9.0.0
-    version: 9.1.0(typescript@4.9.5)
+    version: 9.1.0(chokidar@3.5.3)(typescript@4.9.5)
   '@nestjs/testing':
     specifier: ^9.0.0
     version: 9.4.0(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(@nestjs/platform-express@9.4.0)
@@ -159,10 +159,10 @@ devDependencies:
     version: 6.3.3
   ts-jest:
     specifier: 29.0.5
-    version: 29.0.5(jest@29.5.0)(typescript@4.9.5)
+    version: 29.0.5(@babel/core@7.21.4)(jest@29.5.0)(typescript@4.9.5)
   ts-loader:
     specifier: ^9.2.3
-    version: 9.4.2(typescript@4.9.5)
+    version: 9.4.2(typescript@4.9.5)(webpack@5.76.2)
   ts-node:
     specifier: ^10.0.0
     version: 10.9.1(@types/node@18.15.11)(typescript@4.9.5)
@@ -183,22 +183,6 @@ packages:
       '@jridgewell/trace-mapping': 0.3.18
     dev: true
 
-  /@angular-devkit/core@15.2.4:
-    resolution: {integrity: sha512-yl+0j1bMwJLKShsyCXw77tbJG8Sd21+itisPLL2MgEpLNAO252kr9zG4TLlFRJyKVftm2l1h78KjqvM5nbOXNg==}
-    engines: {node: ^14.20.0 || ^16.13.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
-    peerDependencies:
-      chokidar: ^3.5.2
-    peerDependenciesMeta:
-      chokidar:
-        optional: true
-    dependencies:
-      ajv: 8.12.0
-      ajv-formats: 2.1.1
-      jsonc-parser: 3.2.0
-      rxjs: 6.6.7
-      source-map: 0.7.4
-    dev: true
-
   /@angular-devkit/core@15.2.4(chokidar@3.5.3):
     resolution: {integrity: sha512-yl+0j1bMwJLKShsyCXw77tbJG8Sd21+itisPLL2MgEpLNAO252kr9zG4TLlFRJyKVftm2l1h78KjqvM5nbOXNg==}
     engines: {node: ^14.20.0 || ^16.13.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -209,7 +193,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1(ajv@8.12.0)
       chokidar: 3.5.3
       jsonc-parser: 3.2.0
       rxjs: 6.6.7
@@ -227,19 +211,6 @@ packages:
       inquirer: 8.2.4
       symbol-observable: 4.0.0
       yargs-parser: 21.1.1
-    transitivePeerDependencies:
-      - chokidar
-    dev: true
-
-  /@angular-devkit/schematics@15.2.4:
-    resolution: {integrity: sha512-/W7/vvn59PAVLzhcvD4/N/E8RDhub8ny1A7I96LTRjC5o+yvVV16YJ4YJzolrRrIEN01KmLVQJ9A58VCaweMgw==}
-    engines: {node: ^14.20.0 || ^16.13.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
-    dependencies:
-      '@angular-devkit/core': 15.2.4
-      jsonc-parser: 3.2.0
-      magic-string: 0.29.0
-      ora: 5.4.1
-      rxjs: 6.6.7
     transitivePeerDependencies:
       - chokidar
     dev: true
@@ -1228,7 +1199,7 @@ packages:
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
 
-  /@marinade.finance/directed-stake-sdk@0.0.4(@solana/web3.js@1.75.0)(bn.js@5.2.1):
+  /@marinade.finance/directed-stake-sdk@0.0.4(@solana/web3.js@1.75.0)(bn.js@5.2.1)(jsbi@4.3.0):
     resolution: {integrity: sha512-5WTBDRg8hbCHS54wUUhPUuXj9JiQE3Bc1+nmDI3JivQPHu7VsDaPB3w1SHRh0bfARnZQg9oKg8s6jVwNiScCsQ==}
     engines: {node: '>10'}
     peerDependencies:
@@ -1240,6 +1211,7 @@ packages:
       '@solana/web3.js': 1.75.0
       bn.js: 5.2.1
       bs58: 5.0.0
+      jsbi: 4.3.0
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -1418,7 +1390,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@mercurial-finance/vault-sdk@0.5.1:
+  /@mercurial-finance/vault-sdk@0.5.1(@saberhq/solana-contrib@1.14.11)(@saberhq/token-utils@1.14.11):
     resolution: {integrity: sha512-cnjQAxEULFdcuZfQVGJcoFRmMIh3nULwUU8/liQa9epF2q2YnLols0GpFVyl+lBZrNvSjs6F5/2lstMsEs4lfA==}
     dependencies:
       '@blockworks-foundation/mango-client': 3.6.20
@@ -1435,8 +1407,8 @@ packages:
       '@mercurial-finance/tulip-platform-sdk': 2.0.30
       '@mithraic-labs/psylend-utils': 0.0.3-rc39
       '@project-serum/anchor': 0.25.0
-      '@quarryprotocol/quarry-sdk': 5.0.2(@project-serum/anchor@0.25.0)(@saberhq/anchor-contrib@1.14.11)(@solana/web3.js@1.72.0)(bn.js@5.2.1)(jsbi@4.3.0)
-      '@saberhq/anchor-contrib': 1.14.11(@project-serum/anchor@0.25.0)(@solana/web3.js@1.72.0)(bn.js@5.2.1)
+      '@quarryprotocol/quarry-sdk': 5.0.2(@project-serum/anchor@0.25.0)(@saberhq/anchor-contrib@1.14.11)(@saberhq/solana-contrib@1.14.11)(@saberhq/token-utils@1.14.11)(@solana/web3.js@1.72.0)(bn.js@5.2.1)(jsbi@4.3.0)
+      '@saberhq/anchor-contrib': 1.14.11(@project-serum/anchor@0.25.0)(@solana/web3.js@1.75.0)(bn.js@5.2.1)
       '@solana/buffer-layout': 4.0.1
       '@solana/spl-token': 0.1.8
       '@solana/spl-token-registry': 0.2.1105
@@ -1714,20 +1686,6 @@ packages:
       - chokidar
     dev: true
 
-  /@nestjs/schematics@9.1.0(typescript@4.9.5):
-    resolution: {integrity: sha512-/7CyMTnPJSK9/xD9CkCqwuHPOlHVlLC2RDnbdCJ7mIO07SdbBbY14msTqtYW9VRQtsjZPLh1GTChf7ryJUImwA==}
-    peerDependencies:
-      typescript: '>=4.3.5'
-    dependencies:
-      '@angular-devkit/core': 15.2.4
-      '@angular-devkit/schematics': 15.2.4
-      jsonc-parser: 3.2.0
-      pluralize: 8.0.0
-      typescript: 4.9.5
-    transitivePeerDependencies:
-      - chokidar
-    dev: true
-
   /@nestjs/swagger@6.3.0(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13):
     resolution: {integrity: sha512-Gnig189oa1tD+h0BYIfUwhp/wvvmTn6iO3csR2E4rQrDTgCxSxZDlNdfZo3AC+Rmf8u0KX4ZAX1RZN1qXTtC7A==}
     peerDependencies:
@@ -1946,8 +1904,8 @@ packages:
     resolution: {integrity: sha512-5pHeyvQhzLahIQ8aZymmDMZJAJFklN0joZdI+YIqFkK2uU/mlKr6rBLQjxysf/j1mLLiNG00tdyLfUtTAdQz7w==}
     engines: {node: '>=11'}
     dependencies:
-      '@project-serum/borsh': 0.2.5(@solana/web3.js@1.75.0)
-      '@solana/web3.js': 1.75.0
+      '@project-serum/borsh': 0.2.5(@solana/web3.js@1.78.5)
+      '@solana/web3.js': 1.78.5
       base64-js: 1.5.1
       bn.js: 5.2.1
       bs58: 4.0.1
@@ -2117,6 +2075,17 @@ packages:
       buffer-layout: 1.2.2
     dev: false
 
+  /@project-serum/borsh@0.2.5(@solana/web3.js@1.78.5):
+    resolution: {integrity: sha512-UmeUkUoKdQ7rhx6Leve1SssMR/Ghv8qrEiyywyxSWg7ooV7StdpPBhciiy5eB3T0qU1BXvdRNC8TdrkxK7WC5Q==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@solana/web3.js': ^1.2.0
+    dependencies:
+      '@solana/web3.js': 1.78.5
+      bn.js: 5.2.1
+      buffer-layout: 1.2.2
+    dev: false
+
   /@project-serum/common@0.0.1-beta.3(@solana/web3.js@1.75.0):
     resolution: {integrity: sha512-gnQE/eUydTtto5okCgLWj1M97R9RRPJqnhKklikYI7jP/pnNhDmngSXC/dmfzED2GXSJEIKNIlxVw1k+E2Aw3w==}
     engines: {node: '>=10'}
@@ -2241,7 +2210,7 @@ packages:
       buffer: 6.0.3
     dev: false
 
-  /@quarryprotocol/quarry-sdk@5.0.2(@project-serum/anchor@0.25.0)(@saberhq/anchor-contrib@1.14.11)(@solana/web3.js@1.72.0)(bn.js@5.2.1)(jsbi@4.3.0):
+  /@quarryprotocol/quarry-sdk@5.0.2(@project-serum/anchor@0.25.0)(@saberhq/anchor-contrib@1.14.11)(@saberhq/solana-contrib@1.14.11)(@saberhq/token-utils@1.14.11)(@solana/web3.js@1.72.0)(bn.js@5.2.1)(jsbi@4.3.0):
     resolution: {integrity: sha512-wczlmNfb8fk6WCZsLLR7ysSjgxl6ZdEJ7cNDhgvFpU9E1YMSN1f2l2NK9yw+VksuLxWCightFsBrHSqqIftDzQ==}
     peerDependencies:
       '@project-serum/anchor': '>=0.19'
@@ -2253,7 +2222,9 @@ packages:
       jsbi: ^3 || ^4
     dependencies:
       '@project-serum/anchor': 0.25.0
-      '@saberhq/anchor-contrib': 1.14.11(@project-serum/anchor@0.25.0)(@solana/web3.js@1.72.0)(bn.js@5.2.1)
+      '@saberhq/anchor-contrib': 1.14.11(@project-serum/anchor@0.25.0)(@solana/web3.js@1.75.0)(bn.js@5.2.1)
+      '@saberhq/solana-contrib': 1.14.11(@solana/web3.js@1.75.0)(bn.js@5.2.1)
+      '@saberhq/token-utils': 1.14.11(@solana/web3.js@1.75.0)(bn.js@5.2.1)(jsbi@4.3.0)
       '@solana/web3.js': 1.72.0
       bn.js: 5.2.1
       jsbi: 4.3.0
@@ -2333,7 +2304,7 @@ packages:
       '@redis/client': 1.5.6
     dev: false
 
-  /@saberhq/anchor-contrib@1.14.11(@project-serum/anchor@0.25.0)(@solana/web3.js@1.72.0)(bn.js@5.2.1):
+  /@saberhq/anchor-contrib@1.14.11(@project-serum/anchor@0.25.0)(@solana/web3.js@1.75.0)(bn.js@5.2.1):
     resolution: {integrity: sha512-6fOMC9XjuMSpGin/5HGqDita/dYzndjMMUNjht7yQZzD9638cdjrAutwZjvYwMUepKLdJ5CQV4bE74bSeMF9HQ==}
     peerDependencies:
       '@project-serum/anchor': ^0.22 || ^0.23 || ^0.24
@@ -2341,8 +2312,8 @@ packages:
       bn.js: ^4 || ^5
     dependencies:
       '@project-serum/anchor': 0.25.0
-      '@saberhq/solana-contrib': 1.14.11(@solana/web3.js@1.72.0)(bn.js@5.2.1)
-      '@solana/web3.js': 1.72.0
+      '@saberhq/solana-contrib': 1.14.11(@solana/web3.js@1.75.0)(bn.js@5.2.1)
+      '@solana/web3.js': 1.75.0
       bn.js: 5.2.1
       eventemitter3: 4.0.7
       lodash.camelcase: 4.3.0
@@ -2353,24 +2324,6 @@ packages:
   /@saberhq/option-utils@1.14.11:
     resolution: {integrity: sha512-v75bHrUYp791lGN6PnbX7eg8T8WbdGSX1y591IhC3WgZDdXPxC/lY1Puv/g9pXxytyCrftTLFehv8+2odMKsyw==}
     dependencies:
-      tslib: 2.5.0
-    dev: false
-
-  /@saberhq/solana-contrib@1.14.11(@solana/web3.js@1.72.0)(bn.js@5.2.1):
-    resolution: {integrity: sha512-HOEJpTZnSGmrfJG2gV18vQbtI14ET9l4/Q1yyPk4R2dkydxZIfBIPCI9SRWZ9g01/nuob3Fryd79Ca6QDk7qjw==}
-    peerDependencies:
-      '@solana/web3.js': ^1.42
-      bn.js: ^4 || ^5
-    dependencies:
-      '@saberhq/option-utils': 1.14.11
-      '@solana/buffer-layout': 4.0.1
-      '@solana/web3.js': 1.72.0
-      '@types/promise-retry': 1.1.3
-      '@types/retry': 0.12.2
-      bn.js: 5.2.1
-      promise-retry: 2.0.1
-      retry: 0.13.1
-      tiny-invariant: 1.3.1
       tslib: 2.5.0
     dev: false
 
@@ -2794,7 +2747,7 @@ packages:
   /@switchboard-xyz/switchboard-api@0.2.201(typescript@4.9.5):
     resolution: {integrity: sha512-hlxgeYmO6dbOEcmQzT1SqRxdiCFyVOMpyW4HFPgmPKT0+wSVkjsLc+BKkMGYPDaO0sWMLTJrj0FGhhTsrqd8Mg==}
     dependencies:
-      '@solana/web3.js': 1.75.0
+      '@solana/web3.js': 1.78.5
       form-data: 4.0.0
       protobufjs: 6.11.4
       rpc-websockets: 7.5.1
@@ -2950,6 +2903,13 @@ packages:
       '@types/node': 18.15.11
     dev: true
 
+  /@types/inquirer@8.2.6:
+    resolution: {integrity: sha512-3uT88kxg8lNzY8ay2ZjP44DKcRaTGztqeIvN2zHvhzIBH/uAPaL75aBtdNRKbA7xXoMbBt5kX0M00VKAnfOYlA==}
+    dependencies:
+      '@types/through': 0.0.31
+      rxjs: 7.8.0
+    dev: false
+
   /@types/isomorphic-fetch@0.0.36:
     resolution: {integrity: sha512-ulw4d+vW1HKn4oErSmNN2HYEcHGq0N1C5exlrMM0CRqX1UUpFhGb5lwiom5j9KN3LBJJDLRmYIZz1ghm7FIzZw==}
     dev: true
@@ -3064,6 +3024,12 @@ packages:
     dependencies:
       '@types/superagent': 4.1.16
     dev: true
+
+  /@types/through@0.0.31:
+    resolution: {integrity: sha512-LpKpmb7FGevYgXnBXYs6HWnmiFyVG07Pt1cnbgM1IhEacITTiUaBXXvOR3Y50ksaJWGSfhbEvQFivQEFGCC55w==}
+    dependencies:
+      '@types/node': 18.15.11
+    dev: false
 
   /@types/validator@13.7.15:
     resolution: {integrity: sha512-yeinDVQunb03AEP8luErFcyf/7Lf7AzKCD0NXfgVoGCCQDNpZET8Jgq74oBgqKld3hafLbfzt/3inUdQvaFeXQ==}
@@ -3536,8 +3502,10 @@ packages:
       - supports-color
     dev: false
 
-  /ajv-formats@2.1.1:
+  /ajv-formats@2.1.1(ajv@8.12.0):
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
+    peerDependencies:
+      ajv: ^8.0.0
     peerDependenciesMeta:
       ajv:
         optional: true
@@ -3694,7 +3662,7 @@ packages:
   /axios@1.3.6:
     resolution: {integrity: sha512-PEcdkk7JcdPiMDkvM4K6ZBRYq9keuVJsToxm2zQIM70Qqo2WHTdJZMXcG9X+RmRp2VPNUQC8W1RAGbgt6b1yMg==}
     dependencies:
-      follow-redirects: 1.15.2
+      follow-redirects: 1.15.2(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -5234,16 +5202,6 @@ packages:
 
   /flatted@3.2.7:
     resolution: {integrity: sha512-5nqDSxl8nn5BSNxyR3n4I6eDmbolI6WT+QqR547RwxQapgjQBmtktdP+HTBb/a/zLsbzERTONyUB5pefh5TtjQ==}
-
-  /follow-redirects@1.15.2:
-    resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-    dev: false
 
   /follow-redirects@1.15.2(debug@4.3.4):
     resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
@@ -6899,7 +6857,7 @@ packages:
   /neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  /nest-commander@3.6.1(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(reflect-metadata@0.1.13)(rxjs@7.8.0):
+  /nest-commander@3.6.1(@nestjs/common@9.4.0)(@nestjs/core@9.4.0)(@types/inquirer@8.2.6)(reflect-metadata@0.1.13)(rxjs@7.8.0):
     resolution: {integrity: sha512-8PjdRbyd15O1aCzn9fD4OalLOtDDqd97DrQxUWDciSI3/9GKOT8qKf8zmXBF7T+NV/CC80CTvE64Fl5wMkmkDA==}
     peerDependencies:
       '@nestjs/common': ^8.0.0 || ^9.0.0
@@ -6911,6 +6869,7 @@ packages:
       '@golevelup/nestjs-discovery': 3.0.0
       '@nestjs/common': 9.4.0(cache-manager@5.2.1)(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.0)
       '@nestjs/core': 9.4.0(@nestjs/common@9.4.0)(@nestjs/platform-express@9.4.0)(reflect-metadata@0.1.13)(rxjs@7.8.0)
+      '@types/inquirer': 8.2.6
       commander: 10.0.0
       cosmiconfig: 8.1.0
       inquirer: 8.2.4
@@ -7002,6 +6961,7 @@ packages:
   /node-gyp-build@4.6.0:
     resolution: {integrity: sha512-NTZVKn9IylLwUzaKjkas1e4u2DLNcV4rdYagA4PWdPwW87Bi7z+BznyKSRwS/761tV/lzCGXplWsiaMjLqP2zQ==}
     hasBin: true
+    requiresBuild: true
     dev: false
 
   /node-int64@0.4.0:
@@ -8046,7 +8006,7 @@ packages:
       is-fullwidth-code-point: 3.0.0
     dev: true
 
-  /slonik@33.3.0(zod@3.21.4):
+  /slonik@33.3.0(zod@3.22.3):
     resolution: {integrity: sha512-H1DjF5cgv7AJU0wkFX7WaPq4z2BZLmQxsgb4sPls+c/Mps5/ycFnQnFIiRgF9b3/5v5HrlJm3oUVhTebyO9QGw==}
     engines: {node: '>=10.0'}
     peerDependencies:
@@ -8071,7 +8031,7 @@ packages:
       safe-stable-stringify: 2.4.3
       serialize-error: 8.1.0
       through2: 4.0.2
-      zod: 3.21.4
+      zod: 3.22.3
     transitivePeerDependencies:
       - pg-native
     dev: false
@@ -8525,7 +8485,7 @@ packages:
     engines: {node: '>=10.0.0'}
     dev: false
 
-  /ts-jest@29.0.5(jest@29.5.0)(typescript@4.9.5):
+  /ts-jest@29.0.5(@babel/core@7.21.4)(jest@29.5.0)(typescript@4.9.5):
     resolution: {integrity: sha512-PL3UciSgIpQ7f6XjVOmbi96vmDHUqAyqDr8YxzopDqX3kfgYtX1cuNeBjP+L9sFXi6nzsGGA6R3fP3DDDJyrxA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
@@ -8546,6 +8506,7 @@ packages:
       esbuild:
         optional: true
     dependencies:
+      '@babel/core': 7.21.4
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       jest: 29.5.0(@types/node@18.15.11)(ts-node@10.9.1)
@@ -8558,7 +8519,7 @@ packages:
       yargs-parser: 21.1.1
     dev: true
 
-  /ts-loader@9.4.2(typescript@4.9.5):
+  /ts-loader@9.4.2(typescript@4.9.5)(webpack@5.76.2):
     resolution: {integrity: sha512-OmlC4WVmFv5I0PpaxYb+qGeGOdm5giHU7HwDDUjw59emP2UYMHy9fFSDcYgSNoH8sXcj4hGCSEhlDZ9ULeDraA==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
@@ -8570,6 +8531,7 @@ packages:
       micromatch: 4.0.5
       semver: 7.3.8
       typescript: 4.9.5
+      webpack: 5.76.2
     dev: true
 
   /ts-node@10.9.1(@types/node@18.15.11)(typescript@4.9.5):
@@ -9115,6 +9077,6 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /zod@3.21.4:
-    resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
+  /zod@3.22.3:
+    resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
     dev: false
