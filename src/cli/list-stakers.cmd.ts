@@ -1,7 +1,8 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { Logger } from '@nestjs/common';
 import { StakersService } from 'src/stakers/stakers.service';
-import fs from 'fs/promises';
+import fs from 'fs';
+import json from 'big-json';
 
 type ListStakersCommandOptions = {
   startDate: string;
@@ -60,17 +61,29 @@ export class ListStakersCommand extends CommandRunner {
       throw new Error('argument --output is required');
     }
 
-    this.logger.log(
-      `Listing all stakers (liquid and native) for ${startDate || 'now'} - ${
-        endDate || 'now'
-      }`,
+    const logger = this.logger;
+    logger.log(
+      `Listing all stakers (liquid and native) in period (${
+        startDate || 'now'
+      } - ${endDate || 'now'})`,
     );
     const allStakers = await this.stakersService.getAllStakersBalances(
       startDate,
       endDate,
     );
 
-    this.logger.log(`Saving data as JSON to '${output}'`);
-    await fs.writeFile(output, JSON.stringify(allStakers, null, 0));
+    logger.log(`Saving data as JSON to '${output}'`);
+    const startTime = new Date();
+    const fileWriteStream = fs.createWriteStream(output);
+    json
+      .createStringifyStream({ body: allStakers })
+      .pipe(fileWriteStream)
+      .on('finish', () =>
+        logger.log(
+          `Data written in '${
+            (new Date().getTime() - startTime.getTime()) / 1000
+          } seconds'`,
+        ),
+      );
   }
 }
