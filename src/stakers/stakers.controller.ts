@@ -96,9 +96,9 @@ export class StakersController {
   ): Promise<NativeStakeBalanceDto[]> {
     validateDateInterval(query.startDate, query.endDate);
     const result = await this.stakersService.getNativeStakeBalances(
+      pubkey,
       query.startDate,
       query.endDate,
-      pubkey,
     );
     if (!result) {
       throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
