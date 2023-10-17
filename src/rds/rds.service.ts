@@ -16,6 +16,17 @@ export const PSQL_POOL_PROVIDER = 'PSQL_POOL_PROVIDER';
 export const poolFactory = {
   provide: PSQL_POOL_PROVIDER,
   useFactory: async (configService: ConfigService) => {
+    let statementTimeout = {};
+    if (configService.postgresStatementTimeout != null) {
+      // not-null not-undefined
+      statementTimeout = {
+        statementTimeout:
+          configService.postgresStatementTimeout === 'DISABLE_TIMEOUT'
+            ? 'DISABLE_TIMEOUT'
+            : parseInt(configService.postgresStatementTimeout, 10),
+      };
+    }
+
     return await createPool(configService.postgresUrl, {
       typeParsers: [
         ...createTypeParserPreset(),
@@ -28,6 +39,7 @@ export const poolFactory = {
           parse: (numeric): string => numeric,
         },
       ],
+      ...statementTimeout,
     });
   },
   inject: [ConfigService],
