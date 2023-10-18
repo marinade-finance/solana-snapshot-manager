@@ -1,6 +1,6 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { Logger } from '@nestjs/common';
-import { ParserService } from '../snapshot/parser.service';
+import { ParserService } from '../snapshot/parser/parser.service';
 import * as fs from 'fs';
 
 type FiltersCommandOptions = {

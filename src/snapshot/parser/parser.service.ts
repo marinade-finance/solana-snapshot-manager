@@ -23,6 +23,7 @@ import {
   MangoClient,
   Group,
 } from '@blockworks-foundation/mango-v4';
+import { Kamino } from '@hubbleprotocol/kamino-sdk';
 import { Wallet } from '@coral-xyz/anchor';
 import vaults from 'src/vaults/vaults';
 import {
@@ -35,6 +36,7 @@ import {
   getAmountByShare,
   getVaultPdas,
 } from '@mercurial-finance/vault-sdk';
+import { SQLConnection } from './sql.connection';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -52,6 +54,7 @@ const enum Source {
   MRGN = 'MRGN',
   MANGO = 'MANGO',
   LIFINITY = 'LIFINITY',
+  KAMINO = 'KAMINO',
 }
 
 type SnapshotRecord = {
@@ -85,8 +88,13 @@ export class ParserService {
 
   async *parsedRecords(
     db: SQLite.Database,
-    slotTimestamp: number,
+    slot: number,
   ): AsyncGenerator<[Record<string, BN>, Source]> {
+    const slotTimestamp = await this.getBlockTime(slot);
+    if (slotTimestamp === null) {
+      throw new Error('Failed to get timestamp for the slot: ' + slot);
+    }
+
     yield [this.mSolHolders(db), Source.WALLET];
     yield [await this.orcaWhirlpools(db), Source.ORCA];
     yield [await this.raydiumV2(db), Source.RAYDIUM_V2];
@@ -108,6 +116,7 @@ export class ParserService {
     yield [this.mrgn(db), Source.MRGN];
     yield [this.mango(db), Source.MANGO];
     yield [this.lifinity(db), Source.LIFINITY];
+    yield [await this.kamino(db, slot), Source.KAMINO];
   }
 
   async *parseVeMNDERecords(
@@ -178,6 +187,7 @@ export class ParserService {
         mercurialStableSwapPoolMint.lp,
         ...meteoraVaults.map((v) => v.lp),
         ...mercurialAmmPoolsLps.map((v) => v.lp),
+        ...(await this.getKaminoShareMintsForFilters()),
       ].join(','),
       whirlpool_pool_address: whirlpools
         .map(({ address }) => address)
@@ -193,6 +203,11 @@ export class ParserService {
     };
   }
 
+  async getVaults(db: SQLite.Database, slot: number): Promise<string[]> {
+    const staticVaults = vaults;
+    return [...staticVaults, ...(await this.getKaminoVaults(db, slot))];
+  }
+
   async *parse(sqlite: string, slot: number): AsyncGenerator<SnapshotRecord> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
@@ -203,15 +218,8 @@ export class ParserService {
       throw new Error('Failed to get mSOL supply!');
     }
 
-    const slotTimestamp = await this.getBlockTime(slot);
-    if (slotTimestamp === null) {
-      throw new Error('Failed to get timestamp for the slot: ' + slot);
-    }
-
-    for await (const [partialRecords, source] of this.parsedRecords(
-      db,
-      slotTimestamp,
-    )) {
+    const vaults = await this.getVaults(db, slot);
+    for await (const [partialRecords, source] of this.parsedRecords(db, slot)) {
       const sum = Object.entries(partialRecords).reduce((sum, [key, value]) => {
         return vaults.includes(key) ? sum : sum.add(value);
       }, new BN(0));
@@ -758,6 +766,141 @@ export class ParserService {
     return buf;
   }
 
+  static async getKaminoMsolStrategies(kamino: Kamino) {
+    const strategies = await kamino.getStrategiesShareData({});
+    return strategies.filter(
+      (x) =>
+        x.strategy.tokenAMint.toString() === MSOL_MINT ||
+        x.strategy.tokenBMint.toString() === MSOL_MINT,
+    );
+  }
+
+  private async getKaminoShareMintsForFilters(): Promise<Array<string>> {
+    this.solanaService.connection;
+    const kamino = new Kamino('mainnet-beta', this.solanaService.connection);
+    const msolStrategies = await ParserService.getKaminoMsolStrategies(kamino);
+    this.logger.debug('Kamino mSOL vaults', {
+      msol_strategies: msolStrategies.length,
+      strategy_shares_mints: msolStrategies.map((x) => {
+        return {
+          addr: x.address.toBase58(),
+          mint: x.strategy.sharesMint.toBase58(),
+        };
+      }),
+    });
+    return msolStrategies.map((x) => x.strategy.sharesMint.toBase58());
+  }
+
+  private async getKaminoVaults(
+    db: SQLite.Database,
+    slot: number,
+  ): Promise<Array<string>> {
+    const kamino = this.getRawAccountsDbConnection(db, slot);
+    return (await ParserService.getKaminoMsolStrategies(kamino)).flatMap(
+      (x) => {
+        return x.strategy.tokenAMint.toBase58() == MSOL_MINT
+          ? [
+              x.strategy.tokenAVault.toBase58(),
+              x.strategy.poolTokenVaultA.toBase58(),
+            ]
+          : [
+              x.strategy.tokenBVault.toBase58(),
+              x.strategy.poolTokenVaultB.toBase58(),
+            ];
+      },
+    );
+  }
+
+  private getRawAccountsDbConnection(
+    db: SQLite.Database,
+    slot: number,
+  ): Kamino {
+    const sqlConnection = new SQLConnection(
+      db,
+      'raw_accounts',
+      slot,
+      this.logger,
+    );
+    return new Kamino('mainnet-beta', sqlConnection);
+  }
+
+  private async kamino(
+    db: SQLite.Database,
+    slot: number,
+  ): Promise<Record<string, BN>> {
+    this.logger.log('Parsing Kamino');
+    const kamino = this.getRawAccountsDbConnection(db, slot);
+
+    const buf: Record<string, BN> = {};
+    this.logger.log('Loading strategies shared data...');
+    const msolStrategies = await ParserService.getKaminoMsolStrategies(kamino);
+    this.logger.debug('Number of mSOL vaults', {
+      msol_strategies: msolStrategies.length,
+      strategy_shares_mints: msolStrategies.map((x) => {
+        return {
+          addr: x.address.toBase58(),
+          mint: x.strategy.sharesMint.toBase58(),
+        };
+      }),
+    });
+    for (const msolStrategy of msolStrategies) {
+      const tokenHoldings = await kamino.getStrategyTokensHoldings(
+        msolStrategy,
+      );
+      const mSolsInStrategy = new BN(
+        (msolStrategy.strategy.tokenAMint.toString() === MSOL_MINT
+          ? tokenHoldings.a
+          : tokenHoldings.b
+        ).toString(),
+      );
+      if (
+        msolStrategy.strategy.sharesIssued.lte(new BN(0)) ||
+        mSolsInStrategy.eqn(0)
+      ) {
+        // no msol holders here (and let's not divide by zero)
+        continue;
+      }
+      const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(
+        db,
+        msolStrategy.strategy.sharesMint.toBase58(),
+      );
+
+      // --- for tracking purpose to see if we have all the shares for the strategy
+      const sharesMintSupply = this.getMintSupply(
+        db,
+        msolStrategy.strategy.sharesMint.toBase58(),
+      );
+      if (
+        sharesMintSupply === null ||
+        !msolStrategy.strategy.sharesIssued.eq(sharesMintSupply)
+      ) {
+        this.logger.warn(
+          `Wrong shares mint supply for strategy: ${msolStrategy.address.toBase58()} ` +
+            `mint: ${msolStrategy.strategy.sharesMint.toBase58()} or is not equal ` +
+            `${sharesMintSupply && sharesMintSupply.toString()} ` +
+            `shares issued ${msolStrategy.strategy.sharesIssued.toString()} ` +
+            `, number of token accounts ${tokenAccounts.length}`,
+        );
+      }
+      // ---
+
+      tokenAccounts
+        .filter((tokenAccount) => new BN(tokenAccount.amount).gtn(0))
+        .forEach((tokenAccount) => {
+          // (holder qty of ktokens) * (Token A Amounts) / (Shares Issued | Shares Mint token supply) = (mSOL Amount)
+          // Token A Amounts is the sum of invested + uninvested amounts
+          const holderKTokens = new BN(tokenAccount.amount);
+          const holderMSols = holderKTokens
+            .mul(mSolsInStrategy)
+            .div(msolStrategy.strategy.sharesIssued);
+          buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(
+            holderMSols,
+          );
+        });
+    }
+    return buf;
+  }
+
   private getMercurialStableSwapPoolLps() {
     // Mercurial Stable Swap (mSOL-2Pool)
     const result = {
@@ -1011,7 +1154,7 @@ export class ParserService {
 
       // 2. checking the rest of lp mint owners expecting they will be the known AMM pools
       // those token accounts are owned by the AMM program and were particularly loaded
-      // through getFilters method and processed by marinade-snapshot-etl and returned back here in sqllite db
+      // through getFilters method and processed by marinade-snapshot-etl and returned back here in sqlite db
       // Now, for the every AMM pool we have msol vault, we need to check users of the pool and find their shares
       for (const msolPool of msolPoolsMsolVaults) {
         const poolMsolVaultLpAmount = this.getTokenAccountBalance(
