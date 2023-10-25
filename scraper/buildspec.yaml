@@ -30,7 +30,7 @@ phases:
       - "SLOT=$(tar -tf /data/snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)"
       - pnpm install --frozen-lockfile
       - pnpm run cli -- filters --json-output filters.json
-      - docker run --rm --volume "/data:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG" /usr/local/bin/solana-snapshot-etl /data/snapshot.tar.bz2 --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
+      - docker run --rm --volume "/data:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/marinade.finance/snapshot-etl:$TAG" /usr/local/bin/solana-snapshot-etl /data/snapshot.tar.bz2 --sqlite-out /data/snapshot.db
       - ./index-db.bash /data/snapshot.db
       - pnpm run cli -- parse --sqlite /data/snapshot.db --csv-output /data/snapshot.csv --slot "$SLOT --psql-output"
       - pnpm run cli -- record-msol-votes
