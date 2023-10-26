@@ -116,8 +116,7 @@ export class ParserService {
     yield [this.mrgn(db), Source.MRGN];
     yield [this.mango(db), Source.MANGO];
     yield [this.lifinity(db), Source.LIFINITY];
-    // TODO: temporary disable of kamino processing
-    // yield [await this.kamino(db, slot), Source.KAMINO];
+    yield [await this.kamino(db, slot), Source.KAMINO];
   }
 
   async *parseVeMNDERecords(
@@ -204,12 +203,9 @@ export class ParserService {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getVaults(db: SQLite.Database, slot: number): Promise<string[]> {
-    // TODO: temporary disable of kamino processing
-    // const staticVaults = vaults;
-    // return [...staticVaults, ...(await this.getKaminoVaults(db, slot))];
-    return vaults;
+    const staticVaults = vaults;
+    return [...staticVaults, ...(await this.getKaminoVaults(db, slot))];
   }
 
   async *parse(sqlite: string, slot: number): AsyncGenerator<SnapshotRecord> {
