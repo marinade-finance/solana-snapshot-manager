@@ -248,7 +248,7 @@ export class ParserService {
   }
 
   async *parseVeMNDE(sqlite: string): AsyncGenerator<VeMNDESnapshotRecord> {
-    this.logger.log('Opening the SQLite DB', { sqlite });
+    this.logger.log('Parse veMNDE: opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
     for await (const record of this.parseVeMNDERecords(db)) {
       for (const [pubkey, amount] of Object.entries(record)) {
@@ -260,7 +260,7 @@ export class ParserService {
   async *parseNativeStakes(
     sqlite: string,
   ): AsyncGenerator<NativeStakeSnapshotRecord> {
-    this.logger.log('Opening the SQLite DB', { sqlite });
+    this.logger.log('Parse native stakes: opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
     for await (const record of this.parseNativeStakesRecords(db)) {
       for (const [pubkey, amount] of Object.entries(record)) {
@@ -767,7 +767,7 @@ export class ParserService {
   }
 
   static async getKaminoMsolStrategies(kamino: Kamino) {
-    const strategies = await kamino.getStrategiesShareData({});
+    const strategies = await kamino.getAllStrategiesWithFilters({});
     return strategies.filter(
       (x) =>
         x.strategy.tokenAMint.toString() === MSOL_MINT ||
@@ -832,7 +832,6 @@ export class ParserService {
     const kamino = this.getRawAccountsDbConnection(db, slot);
 
     const buf: Record<string, BN> = {};
-    this.logger.log('Loading strategies shared data...');
     const msolStrategies = await ParserService.getKaminoMsolStrategies(kamino);
     this.logger.debug('Number of mSOL vaults', {
       msol_strategies: msolStrategies.length,
@@ -844,9 +843,16 @@ export class ParserService {
       }),
     });
     for (const msolStrategy of msolStrategies) {
-      const tokenHoldings = await kamino.getStrategyTokensHoldings(
-        msolStrategy,
-      );
+      let tokenHoldings;
+      try {
+        tokenHoldings = await kamino.getStrategyTokensHoldings(msolStrategy);
+      } catch (e) {
+        this.logger.warn(
+          `Failed loading mSOL strategy ${msolStrategy.address.toBase58()}`,
+          e,
+        );
+        continue;
+      }
       const mSolsInStrategy = new BN(
         (msolStrategy.strategy.tokenAMint.toString() === MSOL_MINT
           ? tokenHoldings.a
