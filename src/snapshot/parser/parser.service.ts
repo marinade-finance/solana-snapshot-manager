@@ -890,6 +890,10 @@ export class ParserService {
       }
       // ---
 
+      this.logger.log(
+        `Kamino strategy: ${msolStrategy.address.toBase58()}, pool: ${msolStrategy.strategy.pool.toBase58()} ` +
+          `mSols: ${mlamportsToMsol(mSolsInStrategy)}`,
+      );
       tokenAccounts
         .filter((tokenAccount) => new BN(tokenAccount.amount).gtn(0))
         .forEach((tokenAccount) => {
