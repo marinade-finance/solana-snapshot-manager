@@ -16,7 +16,7 @@ import {
 import 'isomorphic-fetch';
 import { mlamportsToMsol, mndelamportsToMNDE } from 'src/util';
 import { SolanaService } from 'src/solana/solana.service';
-import { Keypair, PublicKey } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { AnchorProvider } from '@coral-xyz/anchor';
 import {
   MANGO_V4_ID,
@@ -37,6 +37,7 @@ import {
   getVaultPdas,
 } from '@mercurial-finance/vault-sdk';
 import { SQLConnection } from './sql.connection';
+import { KaminoMarket } from '@hubbleprotocol/kamino-lending-sdk';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -55,6 +56,7 @@ const enum Source {
   MANGO = 'MANGO',
   LIFINITY = 'LIFINITY',
   KAMINO = 'KAMINO',
+  KAMINO_LENDING = 'KAMINO_LENDING',
 }
 
 type SnapshotRecord = {
@@ -117,6 +119,7 @@ export class ParserService {
     yield [this.mango(db), Source.MANGO];
     yield [this.lifinity(db), Source.LIFINITY];
     yield [await this.kamino(db, slot), Source.KAMINO];
+    yield [await this.kaminoLending(db, slot), Source.KAMINO_LENDING];
   }
 
   async *parseVeMNDERecords(
@@ -795,7 +798,7 @@ export class ParserService {
     db: SQLite.Database,
     slot: number,
   ): Promise<Array<string>> {
-    const kamino = this.getRawAccountsDbConnection(db, slot);
+    const kamino = this.getKaminoFromDbConnection(db, slot);
     return (await ParserService.getKaminoMsolStrategies(kamino)).flatMap(
       (x) => {
         return x.strategy.tokenAMint.toBase58() == MSOL_MINT
@@ -811,14 +814,12 @@ export class ParserService {
     );
   }
 
-  private getRawAccountsDbConnection(
-    db: SQLite.Database,
-    slot: number,
-  ): Kamino {
+  private getKaminoFromDbConnection(db: SQLite.Database, slot: number): Kamino {
     const sqlConnection = new SQLConnection(
       db,
       'raw_accounts',
       slot,
+      this.solanaService.connection.rpcEndpoint,
       this.logger,
     );
     return new Kamino('mainnet-beta', sqlConnection);
@@ -829,7 +830,7 @@ export class ParserService {
     slot: number,
   ): Promise<Record<string, BN>> {
     this.logger.log('Parsing Kamino');
-    const kamino = this.getRawAccountsDbConnection(db, slot);
+    const kamino = this.getKaminoFromDbConnection(db, slot);
 
     const buf: Record<string, BN> = {};
     const msolStrategies = await ParserService.getKaminoMsolStrategies(kamino);
@@ -905,6 +906,147 @@ export class ParserService {
         });
     }
     return buf;
+  }
+
+  static async getKaminoLendingMarketsJson() {
+    const response = await fetch('https://api.kamino.finance/kamino-market');
+    return await response.json();
+  }
+
+  static async getKaminoLendingMarkets(): Promise<string[]> {
+    type KaminoLendingMarket = {
+      lendingMarket: string;
+      isPrimary: boolean;
+      name: string;
+      description: string;
+    };
+
+    const lendingMarkets =
+      (await ParserService.getKaminoLendingMarketsJson()) as KaminoLendingMarket[];
+
+    return lendingMarkets.map(
+      (market: KaminoLendingMarket) => market.lendingMarket,
+    );
+  }
+
+  private async loadLendingMarkets(
+    markets: PublicKey[],
+    connection: Connection,
+  ): Promise<Record<string, BN>> {
+    const marketsAmounts = await Promise.all(
+      markets.map(async (market) => this.loadLending(market, connection)),
+    );
+    return marketsAmounts
+      .flat()
+      .reduce<Record<string, BN>>((acc, { owner, amount }) => {
+        const existingAmount = acc[owner];
+        if (existingAmount) {
+          acc[owner] = existingAmount.add(amount);
+        } else {
+          acc[owner] = amount;
+        }
+        return acc;
+      }, {});
+  }
+
+  private async loadLending(
+    market: PublicKey,
+    connection: Connection,
+  ): Promise<{ owner: string; amount: BN }[]> {
+    let marketData: KaminoMarket;
+    try {
+      const loadedMarket = await KaminoMarket.load(connection, market);
+      if (loadedMarket === null) {
+        throw Error('Market account not fetched');
+      }
+      marketData = loadedMarket;
+      await marketData.loadReserves();
+    } catch (e) {
+      this.logger.error(
+        `Cannot load Kamino Lending market data ${market.toBase58()} ` + e,
+      );
+      return [];
+    }
+
+    const msolReserves = marketData.reserves.filter(
+      (reserve) => reserve.state.liquidity.mintPubkey.toBase58() == MSOL_MINT,
+    );
+
+    this.logger.debug(
+      'loan to value pct',
+      msolReserves.map((reserve) => {
+        return {
+          addr: reserve.address.toBase58(),
+          loanPct: reserve.state.config.loanToValuePct,
+          symbol: reserve.getTokenSymbol(),
+        };
+      }),
+    );
+    this.logger.log(
+      'Kamino Lending reserves',
+      msolReserves.map((reserve) => {
+        return {
+          address: reserve.address.toBase58(),
+          token: reserve.getTokenSymbol(),
+          collateral: reserve.state.collateral.mintTotalSupply.toString(),
+          supply: reserve.state.liquidity.availableAmount.toString(),
+        };
+      }),
+      'stats',
+      msolReserves.map((reserve) => {
+        return {
+          totalLiquidity: reserve.stats.totalLiquidity,
+          totalSupply: reserve.stats.totalSupply,
+          mintTotalSupply: reserve.stats.mintTotalSupply,
+          totalBorrows: reserve.stats.totalBorrows,
+        };
+      }),
+    );
+
+    const obligations = await marketData.getAllObligationsForMarket();
+    const owners: { owner: string; amount: BN }[] = [];
+    for (const reserve of msolReserves) {
+      // deposit amounts are denominated in mSOLs
+      const ownerToMsol = obligations
+        .map((obligation) => {
+          const msolDepositAmount: BN = obligation.state.deposits
+            .filter((deposit) => reserve.address.equals(deposit.depositReserve))
+            .map((deposit) => deposit.depositedAmount)
+            .reduce((a, b) => a.add(b), new BN(0));
+          return {
+            owner: obligation.state.owner.toBase58(),
+            amount: msolDepositAmount,
+          };
+        })
+        .filter(({ amount }) => amount.gt(new BN(0)));
+      owners.push(...ownerToMsol);
+      this.logger.log(
+        `Kamino lending reserve ${reserve.address.toBase58()} owner'sum mSOLs ` +
+          ownerToMsol.reduce((a, b) => a.add(b.amount), new BN(0)).toString(),
+      );
+    }
+    return owners;
+  }
+
+  private async kaminoLending(
+    db: SQLite.Database,
+    slot: number,
+  ): Promise<Record<string, BN>> {
+    this.logger.log('Parsing Kamino Lending');
+
+    const markets = (await ParserService.getKaminoLendingMarkets()).map(
+      (market) => new PublicKey(market),
+    );
+
+    const sqlConnection = new SQLConnection(
+      db,
+      'raw_accounts',
+      slot,
+      this.solanaService.connection.rpcEndpoint,
+      this.logger,
+    );
+
+    return await this.loadLendingMarkets(markets, sqlConnection);
   }
 
   private getMercurialStableSwapPoolLps() {

@@ -22,10 +22,11 @@ export class SQLConnection extends Connection {
     readonly db: SQLite.Database,
     readonly table: string,
     readonly slot: number,
+    readonly backupRpcEndpoint: string,
     readonly logger?: Logger,
   ) {
-    // TODO: how to fake this?
-    super('https://api.mainnet-beta.solana.com', {
+    // for any other calls than getAccountInfo, we want to to use the real RPC connection
+    super(backupRpcEndpoint, {
       httpAgent: false,
       // faking fetch as we don't want to do any real network calls
       fetch: async (
@@ -89,6 +90,9 @@ export class SQLConnection extends Connection {
       return [];
     }
 
+    this.logDebug(
+      `Getting public keys ${publicKeys.map((pk) => pk.toBase58())}`,
+    );
     const inClause = publicKeys.map(() => '?').join(',');
     const publicKeysBase58 = publicKeys.map((pk) => pk.toBase58());
     const rows = this.db
@@ -167,6 +171,7 @@ export class SQLConnection extends Connection {
       account: AccountInfo<Buffer>;
     }>
   > {
+    this.logDebug(`Getting program account data ${programId.toBase58()}`);
     const { config } = this.extractCommitmentFromConfig(configOrCommitment);
     const rows = this.db
       .prepare(
@@ -317,6 +322,12 @@ export class SQLConnection extends Connection {
       this.logger.warn(message);
     } else {
       console.error(message);
+    }
+  }
+
+  private logDebug(...message: string[]): void {
+    if (this.logger) {
+      this.logger.debug(message);
     }
   }
 }

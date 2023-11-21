@@ -14,6 +14,8 @@ const vaults: string[] = [
   '6YxGd65JbXzgFGWjE44jsyVeCnZp7Bb1wfL9jDia1n8w', // Margin
   '78b8f4cGCwmZ9ysPFMWLaLTkkaYnUjwMJYStWe5RTSSX', // Mango
   '8gEGZbUfVE1poBq71VHKX9LU7ca4x8wTUyZgcbyQe51s', // Tulip
+  'CQWUdThEbNMjcoEjGyCMTGXHpKvW1aB8JF31hKa1FQQN', // Kamino Lending mSOL supply vault
+  '7Pj3hWhPjhd3mYYGyutQPSkXrm2wPN3VQvVzG3YBMfue', // Kamino Lending mSOL fee vault
 ];
 
 export default vaults;
