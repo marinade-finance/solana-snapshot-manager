@@ -1009,10 +1009,10 @@ export class ParserService {
       // deposit amounts are denominated in mSOLs
       const ownerToMsol = obligations
         .map((obligation) => {
-          const msolDepositAmount: BN = obligation.state.deposits
-            .filter((deposit) => reserve.address.equals(deposit.depositReserve))
-            .map((deposit) => deposit.depositedAmount)
-            .reduce((a, b) => a.add(b), new BN(0));
+          const msolDepositAmount: BN = obligation.deposits
+            .filter((deposit) => deposit.mintAddress === MSOL_MINT)
+            .map((deposit) => deposit.amount)
+            .reduce((a, b) => a.add(new BN(b.toString())), new BN(0));
           return {
             owner: obligation.state.owner.toBase58(),
             amount: msolDepositAmount,
