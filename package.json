@@ -28,7 +28,7 @@
   "dependencies": {
     "@blockworks-foundation/mango-v4": "^0.19.3",
     "@coral-xyz/anchor": "0.28.1-beta.1",
-    "@hubbleprotocol/kamino-lending-sdk": "^2.8.38",
+    "@hubbleprotocol/kamino-lending-sdk": "^2.8.43",
     "@hubbleprotocol/kamino-sdk": "^2.2.48",
     "@hubbleprotocol/scope-sdk": "^2.2.18",
     "@marinade.finance/directed-stake-sdk": "^0.0.4",

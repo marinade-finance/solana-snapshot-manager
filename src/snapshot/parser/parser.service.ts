@@ -1014,7 +1014,7 @@ export class ParserService {
       const ownerToMsol = obligations
         .map((obligation) => {
           const msolDepositAmount: BN = obligation.deposits
-            .filter((deposit) => deposit.mintAddress === MSOL_MINT)
+            .filter((deposit) => deposit.mintAddress.toString() === MSOL_MINT)
             .map((deposit) => deposit.amount)
             .reduce((a, b) => a.add(new BN(b.toString())), new BN(0));
           return {
