@@ -56,9 +56,7 @@ steps:
     - |
       slot=${EPOCH:-$(buildkite-agent meta-data get slot)}
       # This hook should be changed for owned by the snapshot manager
-      curl -v "$$DISCORD_WEBHOOK_ETL" -H "Content-Type: application/json" -d '{
-       "username": "Solana Snapshot Manager",
-       "avatar_url": "https://raw.githubusercontent.com/marinade-finance/solana-snapshot-manager/master/scraper/bot.jpg",
+      curl -v "$$DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER" -H "Content-Type: application/json" -d '{
         "embeds": [
           {
             "title": "Slot '"$$slot"' has been parsed",
