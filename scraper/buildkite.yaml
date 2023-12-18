@@ -14,6 +14,13 @@ steps:
 
   - wait: ~
 
+  - label: ":sleeping: Randomization the startup time"
+    commands:
+    - |
+      sleep $$((RANDOM % 1000))
+
+  - wait: ~
+
   - label: ":drum_with_drumsticks: Preparation"
     commands:
     - |
