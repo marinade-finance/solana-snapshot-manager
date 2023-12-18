@@ -17,7 +17,8 @@ steps:
   - label: ":sleeping: Randomization the startup time"
     commands:
     - |
-      sleep $$((RANDOM % 1000))
+      set -x
+      sleep $$((RANDOM % 14400))
 
   - wait: ~
 
