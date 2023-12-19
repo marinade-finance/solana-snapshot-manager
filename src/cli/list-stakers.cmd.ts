@@ -63,7 +63,7 @@ export class ListStakersCommand extends CommandRunner {
 
     const logger = this.logger;
     logger.log(
-      `Listing all stakers (liquid and native) in period (${
+      `Listing all stakers (liquid and native) in period [${
         startDate || 'now'
       } - ${endDate || 'now'})`,
     );
