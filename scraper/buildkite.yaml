@@ -18,7 +18,10 @@ steps:
     commands:
     - |
       set -x
-      sleep $$((RANDOM % 14400))
+      if [ x"$$SLEEP_TIME" == "x" ]; then
+        SLEEP_TIME=$$((RANDOM % 14400))
+      fi
+      sleep $$SLEEP_TIME
 
   - wait: ~
 
