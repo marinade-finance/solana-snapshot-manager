@@ -17,7 +17,7 @@ steps:
   - label: ":sleeping: Randomization the startup time"
     commands:
     - |
-      set -x
+      set -x -e
       if [ x"$$SLEEP_TIME" == "x" ]; then
         SLEEP_TIME=$$((RANDOM % 14400))
       fi
@@ -37,7 +37,7 @@ steps:
   - label: ":floppy_disk: Downloading snapshot"
     commands:
     - |
-      set -x
+      set -x -e
       ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
       aws ecr get-login-password --region "$$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com"
       docker pull "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG"
@@ -49,7 +49,7 @@ steps:
   - label: ":file_folder: Parsing snapshot"
     commands:
     - |
-      set -x
+      set -x -e
       account_id=${EPOCH:-$(buildkite-agent meta-data get account_id)}
       SLOT=$(tar -tf "$$DATA_DIR"/snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
       pnpm install --frozen-lockfile
