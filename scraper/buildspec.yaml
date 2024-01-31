@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    TAG: 5e8c03a
+    TAG: 1f9423a
     REGION: eu-central-1
     NODE_OPTIONS: --max-old-space-size=8192
   parameter-store:
