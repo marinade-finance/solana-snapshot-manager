@@ -23,7 +23,7 @@ import {
   MangoClient,
   Group,
 } from '@blockworks-foundation/mango-v4';
-import { Kamino } from '@hubbleprotocol/kamino-sdk';
+import { Kamino, ZERO } from '@hubbleprotocol/kamino-sdk';
 import { Wallet } from '@coral-xyz/anchor';
 import vaults from 'src/vaults/vaults';
 import {
@@ -38,6 +38,9 @@ import {
 } from '@mercurial-finance/vault-sdk';
 import { SQLConnection } from './sql.connection';
 import { KaminoMarket } from '@hubbleprotocol/kamino-lending-sdk';
+import { FarmAndKey, Farms, UserAndKey, WAD } from '@hubbleprotocol/farms-sdk';
+import { WhirlpoolStrategy } from '@hubbleprotocol/kamino-sdk/dist/kamino-client/accounts';
+import { Decimal } from 'decimal.js';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -798,7 +801,7 @@ export class ParserService {
     db: SQLite.Database,
     slot: number,
   ): Promise<Array<string>> {
-    const kamino = this.getKaminoFromDbConnection(db, slot);
+    const { kamino } = this.getKaminoFromDbConnection(db, slot);
     return (await ParserService.getKaminoMsolStrategies(kamino)).flatMap(
       (x) => {
         return x.strategy.tokenAMint.toBase58() == MSOL_MINT
@@ -814,7 +817,10 @@ export class ParserService {
     );
   }
 
-  private getKaminoFromDbConnection(db: SQLite.Database, slot: number): Kamino {
+  private getKaminoFromDbConnection(
+    db: SQLite.Database,
+    slot: number,
+  ): { kamino: Kamino; farms: Farms } {
     const sqlConnection = new SQLConnection(
       db,
       'raw_accounts',
@@ -822,7 +828,10 @@ export class ParserService {
       this.solanaService.connection.rpcEndpoint,
       this.logger,
     );
-    return new Kamino('mainnet-beta', sqlConnection);
+    return {
+      kamino: new Kamino('mainnet-beta', sqlConnection),
+      farms: new Farms(sqlConnection),
+    };
   }
 
   private async kamino(
@@ -830,7 +839,10 @@ export class ParserService {
     slot: number,
   ): Promise<Record<string, BN>> {
     this.logger.log('Parsing Kamino');
-    const kamino = this.getKaminoFromDbConnection(db, slot);
+    const { kamino, farms } = this.getKaminoFromDbConnection(db, slot);
+
+    const allFarmUserStates = await farms.getAllUserStates();
+    const allFarmStates = await farms.getAllFarmStates();
 
     const buf: Record<string, BN> = {};
     const msolStrategies = await ParserService.getKaminoMsolStrategies(kamino);
@@ -885,31 +897,89 @@ export class ParserService {
           `Wrong shares mint supply for strategy: ${msolStrategy.address.toBase58()} ` +
             `mint: ${msolStrategy.strategy.sharesMint.toBase58()} or is not equal ` +
             `${sharesMintSupply && sharesMintSupply.toString()} ` +
-            `shares issued ${msolStrategy.strategy.sharesIssued.toString()} ` +
-            `, number of token accounts ${tokenAccounts.length}`,
+            `shares issued ${msolStrategy.strategy.sharesIssued.toString()}, ` +
+            `number of token accounts ${tokenAccounts.length}`,
         );
       }
       // ---
 
       this.logger.log(
         `Kamino strategy: ${msolStrategy.address.toBase58()}, pool: ${msolStrategy.strategy.pool.toBase58()} ` +
-          `mSols: ${mlamportsToMsol(mSolsInStrategy)}`,
+          `mSols: ${mlamportsToMsol(
+            mSolsInStrategy,
+          )}, farm: ${msolStrategy.strategy.farm.toBase58()}, ` +
+          `ktokens issued: ${msolStrategy.strategy.sharesIssued.toString()}, ktokens mint: ${msolStrategy.strategy.sharesMint.toBase58()}`,
       );
-      tokenAccounts
-        .filter((tokenAccount) => new BN(tokenAccount.amount).gtn(0))
-        .forEach((tokenAccount) => {
-          // (holder qty of ktokens) * (Token A Amounts) / (Shares Issued | Shares Mint token supply) = (mSOL Amount)
-          // Token A Amounts is the sum of invested + uninvested amounts
-          const holderKTokens = new BN(tokenAccount.amount);
-          const holderMSols = holderKTokens
-            .mul(mSolsInStrategy)
-            .div(msolStrategy.strategy.sharesIssued);
-          buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(
-            holderMSols,
+      for (const tokenAccount of tokenAccounts.filter((tokenAccount) =>
+        new BN(tokenAccount.amount).gtn(0),
+      )) {
+        // (holder qty of ktokens) * (Token A Amounts) / (Shares Issued | Shares Mint token supply) = (mSOL Amount)
+        // Token A Amounts is the sum of invested + uninvested amounts
+        const holderKTokens = new BN(tokenAccount.amount);
+        const holderFarmKTokens =
+          await ParserService.getShareholderKtokensInFarms(
+            new PublicKey(tokenAccount.owner),
+            msolStrategy.address,
+            msolStrategy.strategy,
+            allFarmUserStates,
+            allFarmStates,
           );
-        });
+        if (holderFarmKTokens.gt(0)) {
+          this.logger.log(
+            `holderFarmKTokens: ${holderFarmKTokens.toString()}, owner: ${
+              tokenAccount.owner
+            }`,
+          );
+        }
+        const ktokensSum = holderKTokens.add(
+          new BN(holderFarmKTokens.toString()),
+        );
+        const holderMSols = ktokensSum
+          .mul(mSolsInStrategy)
+          .div(msolStrategy.strategy.sharesIssued);
+        buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(
+          holderMSols,
+        );
+      }
     }
     return buf;
+  }
+
+  static async getShareholderKtokensInFarms(
+    shareholder: PublicKey,
+    strategy: PublicKey,
+    strategyState: WhirlpoolStrategy,
+    allUserStates: UserAndKey[],
+    allFarmStates: FarmAndKey[],
+  ): Promise<Decimal> {
+    let ktokens = ZERO;
+    if (!strategyState.farm || strategyState.farm.equals(PublicKey.default)) {
+      return ktokens;
+    }
+    const userStates = allUserStates.filter((x) =>
+      x.userState.owner.equals(shareholder),
+    );
+    if (!userStates || userStates.length === 0) {
+      return ktokens;
+    }
+    for (const userState of userStates) {
+      const farmState = allFarmStates.find((x) =>
+        x.key.equals(userState.userState.farmState),
+      );
+      if (
+        farmState &&
+        userState &&
+        farmState.farmState.strategyId.equals(strategy)
+      ) {
+        ktokens = new Decimal(userState.userState.activeStakeScaled.toString())
+          .div(WAD)
+          .dividedBy(
+            Decimal.pow(10, strategyState.sharesMintDecimals.toString()),
+          );
+        break;
+      }
+    }
+    return ktokens;
   }
 
   static async getKaminoLendingMarketsJson() {
