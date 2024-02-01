@@ -924,15 +924,8 @@ export class ParserService {
             allFarmUserStates,
             allFarmStates,
           );
-        if (holderFarmKTokens.gt(0)) {
-          this.logger.log(
-            `holderFarmKTokens: ${holderFarmKTokens.toString()}, owner: ${
-              tokenAccount.owner
-            }`,
-          );
-        }
         const ktokensSum = holderKTokens.add(
-          new BN(holderFarmKTokens.toString()),
+          new BN(holderFarmKTokens.floor().toString()),
         );
         const holderMSols = ktokensSum
           .mul(mSolsInStrategy)
