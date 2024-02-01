@@ -924,9 +924,7 @@ export class ParserService {
             allFarmUserStates,
             allFarmStates,
           );
-        const ktokensSum = holderKTokens.add(
-          new BN(holderFarmKTokens.floor().toString()),
-        );
+        const ktokensSum = holderKTokens.add(holderFarmKTokens);
         const holderMSols = ktokensSum
           .mul(mSolsInStrategy)
           .div(msolStrategy.strategy.sharesIssued);
@@ -944,16 +942,16 @@ export class ParserService {
     strategyState: WhirlpoolStrategy,
     allUserStates: UserAndKey[],
     allFarmStates: FarmAndKey[],
-  ): Promise<Decimal> {
+  ): Promise<BN> {
     let ktokens = ZERO;
     if (!strategyState.farm || strategyState.farm.equals(PublicKey.default)) {
-      return ktokens;
+      return new BN(ktokens.floor().toString());
     }
     const userStates = allUserStates.filter((x) =>
       x.userState.owner.equals(shareholder),
     );
     if (!userStates || userStates.length === 0) {
-      return ktokens;
+      return new BN(ktokens.floor().toString());
     }
     for (const userState of userStates) {
       const farmState = allFarmStates.find((x) =>
@@ -972,7 +970,7 @@ export class ParserService {
         break;
       }
     }
-    return ktokens;
+    return new BN(ktokens.floor().toString());
   }
 
   static async getKaminoLendingMarketsJson() {
