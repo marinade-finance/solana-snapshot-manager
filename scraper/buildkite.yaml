@@ -14,23 +14,12 @@ steps:
 
   - wait: ~
 
-  - label: ":sleeping: Randomization the startup time"
-    commands:
-    - |
-      set -x -e
-      if [ x"$$SLEEP_TIME" == "x" ]; then
-        SLEEP_TIME=$$((RANDOM % 14400))
-      fi
-      sleep $$SLEEP_TIME
-
-  - wait: ~
-
   - label: ":drum_with_drumsticks: Preparation"
     commands:
     - |
       echo "Data directory: $$DATA_DIR"
       mkdir -p "$$DATA_DIR"
-      rm -f "$$DATA_DIR/"*
+      # rm -f "$$DATA_DIR/"*
 
   - wait: ~
 
@@ -41,7 +30,7 @@ steps:
       ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
       aws ecr get-login-password --region "$$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com"
       docker pull "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG"
-      wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -q -P "$$DATA_DIR" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
+      # wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -q -P "$$DATA_DIR" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
       buildkite-agent meta-data set account_id "$$ACCOUNT_ID"
 
   - wait: ~
@@ -53,28 +42,28 @@ steps:
       - SLOT=$(tar -tf "$$DATA_DIR"/snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
       - pnpm install --frozen-lockfile
       - pnpm run cli -- filters --json-output filters.json
-      - docker run -u $(id -u buildkite-agent) --rm --volume "$$DATA_DIR:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$$account_id.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG" /usr/local/bin/solana-snapshot-etl /data/snapshot.tar.bz2 --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
+      - docker run -u $(id -u buildkite-agent) --rm -e "RUST_BACKTRACE=1" -e "RUST_LOG=debug" --volume "$$DATA_DIR:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$$account_id.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG" /usr/local/bin/solana-snapshot-etl /data/snapshot.tar.bz2 --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
       - ./index-db.bash "$$DATA_DIR"/snapshot.db
       - pnpm run cli -- parse --sqlite "$$DATA_DIR"/snapshot.db --csv-output "$$DATA_DIR"/snapshot.csv --slot "$$SLOT --psql-output"
       - pnpm run cli -- record-msol-votes
       - buildkite-agent meta-data set slot "$$SLOT"
 
-  - wait: ~
+  # - wait: ~
 
-  - label: ":loudspeaker: Notification"
-    commands:
-    - |
-      slot=${EPOCH:-$(buildkite-agent meta-data get slot)}
-      # This hook should be changed for owned by the snapshot manager
-      curl -v "$$DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER" -H "Content-Type: application/json" -d '{
-        "embeds": [
-          {
-            "title": "Slot '"$$slot"' has been parsed",
-            "url": "'"$$BUILDKITE_BUILD_URL"'",
-            "color": "16121807"
-          }
-        ]
-      }'
+  # - label: ":loudspeaker: Notification"
+  #   commands:
+  #   - |
+  #     slot=${EPOCH:-$(buildkite-agent meta-data get slot)}
+  #     # This hook should be changed for owned by the snapshot manager
+  #     curl -v "$$DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER" -H "Content-Type: application/json" -d '{
+  #       "embeds": [
+  #         {
+  #           "title": "Slot '"$$slot"' has been parsed",
+  #           "url": "'"$$BUILDKITE_BUILD_URL"'",
+  #           "color": "16121807"
+  #         }
+  #       ]
+  #     }'
       
       
       
