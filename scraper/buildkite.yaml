@@ -1,7 +1,7 @@
 env:
   DATA_DIR: /mnt/storage-1/solana-snapshot-manager
   PNPM_HOME: "$$DATA_DIR/pnpm"
-  TAG: 1f9423a
+  TAG: 64b760e
   NODE_OPTIONS: --max-old-space-size=16384
 
 agents:
