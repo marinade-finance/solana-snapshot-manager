@@ -170,6 +170,14 @@ export class StakersService {
         (b) => b.createdAt === balance.created_at,
       );
       if (foundRecord) {
+        if (foundRecord.liquid_amount !== '0') {
+          this.logger.error(
+            `foundRecord: ${JSON.stringify(
+              foundRecord,
+            )}, balance: ${JSON.stringify(balance)}`,
+          );
+          throw new Error('Duplicate liquid balance for the same time');
+        }
         foundRecord.liquid_amount = balance.amount;
       } else {
         stakerDto.balances.push({
@@ -187,6 +195,14 @@ export class StakersService {
         (b) => b.createdAt === balance.created_at,
       );
       if (foundRecord) {
+        if (foundRecord.native_amount !== '0') {
+          this.logger.error(
+            `foundRecord: ${JSON.stringify(
+              foundRecord,
+            )}, balance: ${JSON.stringify(balance)}`,
+          );
+          throw new Error(`Duplicate native balance for the same time`);
+        }
         foundRecord.native_amount = balance.amount;
       } else {
         stakerDto.balances.push({
