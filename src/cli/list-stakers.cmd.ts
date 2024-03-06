@@ -102,7 +102,7 @@ export class ListStakersCommand extends CommandRunner {
       .pipe(fileWriteStream)
       .on('finish', () =>
         logger.log(
-          `Data written in '${
+          `Data written into ${output} in '${
             (Date.now() - jsonWriteStartTime) / 1000
           } seconds'`,
         ),
