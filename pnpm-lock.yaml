@@ -145,6 +145,9 @@ devDependencies:
   '@types/pg':
     specifier: ^8.6.6
     version: 8.6.6
+  '@types/streaming-json-stringify':
+    specifier: ^3.1.4
+    version: 3.1.4
   '@types/supertest':
     specifier: ^2.0.11
     version: 2.0.12
@@ -172,6 +175,9 @@ devDependencies:
   jest:
     specifier: 29.5.0
     version: 29.5.0(@types/node@18.15.11)(ts-node@10.9.1)
+  json-stream-stringify:
+    specifier: ^3.1.2
+    version: 3.1.2
   prettier:
     specifier: ^2.3.2
     version: 2.8.7
@@ -4453,6 +4459,12 @@ packages:
     resolution: {integrity: sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==}
     dev: true
 
+  /@types/streaming-json-stringify@3.1.4:
+    resolution: {integrity: sha512-OlcPTd8mQ/V8NjeZNzZNDlwXLa7PfPTjWREDO3jFdD/wa2liRNYKPeANM4DnzEnT/avQRYyG/eBmwXZK9suzOg==}
+    dependencies:
+      '@types/node': 18.15.11
+    dev: true
+
   /@types/superagent@4.1.16:
     resolution: {integrity: sha512-tLfnlJf6A5mB6ddqF159GqcDizfzbMUB1/DeT59/wBNqzRTNNKsaw79A/1TZ84X+f/EwWH8FeuSkjlCLyqS/zQ==}
     dependencies:
@@ -8099,6 +8111,11 @@ packages:
 
   /json-stream-stringify@2.0.4:
     resolution: {integrity: sha512-gIPoa6K5w6j/RnQ3fOtmvICKNJGViI83A7dnTIL+0QJ/1GKuNvCPFvbFWxt0agruF4iGgDFJvge4Gua4ZoiggQ==}
+    dev: true
+
+  /json-stream-stringify@3.1.2:
+    resolution: {integrity: sha512-AHUm3s+xmbOOEqkV5pK2ycTFdgwXNSanusvr67RTXGm4w+Z/lOrhjwyynHUgzDKIYo/6I3W9X3Wv8DCHfxFcgQ==}
+    engines: {node: '>=7.10.1'}
     dev: true
 
   /json-stringify-safe@5.0.1:
