@@ -57,6 +57,7 @@ export class ListStakersCommand extends CommandRunner {
     passedParam: string[],
     { startDate, endDate, output }: ListStakersCommandOptions,
   ): Promise<void> {
+    const logger = this.logger;
     if (!output) {
       throw new Error('argument --output is required');
     }
@@ -68,6 +69,11 @@ export class ListStakersCommand extends CommandRunner {
           'Cannot get the current date, use --start-date parameter please',
         );
       }
+      logger.warn('☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️');
+      logger.warn(
+        `⚠️⚠️⚠️ --start-date param not provided, using current date: '${currentDay}' ⚠️⚠️⚠️`,
+      );
+      logger.warn('☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️');
       startDate = currentDay;
     }
     if (!endDate) {
@@ -79,10 +85,14 @@ export class ListStakersCommand extends CommandRunner {
           'Cannot get the tomorrow date, use --end-date parameter please',
         );
       }
+      logger.warn('☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️');
+      logger.warn(
+        `⚠️⚠️⚠️ --end-date param not provided, using tomorrow date: '${tomorrowDayStr}' ⚠️⚠️⚠️`,
+      );
+      logger.warn('☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️☠️');
       endDate = tomorrowDayStr;
     }
 
-    const logger = this.logger;
     logger.log(
       `Loading DB all stakers (liquid and native) in period [${startDate} (inclusive) - ${endDate} (exclusive)]`,
     );
