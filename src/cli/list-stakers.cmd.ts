@@ -22,7 +22,7 @@ export class ListStakersCommand extends CommandRunner {
     flags: '--start-date <string>',
     description:
       'Start date (e.g., 2023-01-01) from snapshot taken time for fetching stakers data. ' +
-      'When not <defined current date> is taken. ' +
+      'When not defined <current date> is taken. ' +
       'The start date is inclusive, the date is calculated into range.',
   })
   parseArgStartDate(val: string): string {
