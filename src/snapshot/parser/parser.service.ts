@@ -1169,9 +1169,7 @@ export class ParserService {
   private async getMercurialMeteoraVaultsJson() {
     // loading meteora shared vaults (msol vault possibly is 8p1VKP45hhqq5iZG5fNGoi7ucme8nFLeChoDWNy7rWFm)
     // in future multiple pools for a token could be configured (mentioned in doc, not clear what other consequences are)
-    const response = await fetch(
-      'https://merv2-api.mercurial.finance/vault_info',
-    );
+    const response = await fetch('https://merv2-api.meteora.ag/vault_info');
     return await response.json();
   }
 
