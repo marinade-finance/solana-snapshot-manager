@@ -48,6 +48,7 @@ steps:
 
   - label: ":file_folder: Parsing snapshot"
     commands:
+      - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 20 minutes" && sleep 1200'
       - set -x -e
       - account_id=${EPOCH:-$(buildkite-agent meta-data get account_id)}
       - SLOT=$(tar -tf "$$DATA_DIR"/snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
@@ -58,6 +59,9 @@ steps:
       - pnpm run cli -- parse --sqlite "$$DATA_DIR"/snapshot.db --csv-output "$$DATA_DIR"/snapshot.csv --slot "$$SLOT --psql-output"
       - pnpm run cli -- record-msol-votes
       - buildkite-agent meta-data set slot "$$SLOT"
+    retry:
+      automatic:
+        - limit: 2
 
   - wait: ~
 
