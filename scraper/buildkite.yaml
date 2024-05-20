@@ -48,6 +48,7 @@ steps:
 
   - label: ":file_folder: Parsing snapshot"
     commands:
+      - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 20 minutes" && sleep 1200'
       - set -x -e
       - account_id=${EPOCH:-$(buildkite-agent meta-data get account_id)}
       - SLOT=$(tar -tf "$$DATA_DIR"/snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
@@ -58,24 +59,31 @@ steps:
       - pnpm run cli -- parse --sqlite "$$DATA_DIR"/snapshot.db --csv-output "$$DATA_DIR"/snapshot.csv --slot "$$SLOT --psql-output"
       - pnpm run cli -- record-msol-votes
       - buildkite-agent meta-data set slot "$$SLOT"
+    key: 'parsing-snapshot'
+    retry:
+      automatic:
+        - limit: 2
 
   - wait: ~
 
   - label: ":loudspeaker: Notification"
     commands:
+    - 'build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")'
+    - '[[ "$$build_result" =~ "failed" ]] && notification_result="FAILED" || notification_result="SUCCEEDED"'
     - |
       slot=${EPOCH:-$(buildkite-agent meta-data get slot)}
       # This hook should be changed for owned by the snapshot manager
       curl -v "$$DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER" -H "Content-Type: application/json" -d '{
         "embeds": [
           {
-            "title": "Slot '"$$slot"' has been parsed",
+            "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
             "url": "'"$$BUILDKITE_BUILD_URL"'",
             "color": "16121807"
           }
         ]
       }'
-      
+    depends_on: "parsing-snapshot"
+    allow_dependency_failure: true
       
       
       
