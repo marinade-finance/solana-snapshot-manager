@@ -5,7 +5,7 @@ env:
   NODE_OPTIONS: --max-old-space-size=16384
 
 agents:
-  queue: "snapshots-old"
+  queue: "snapshots"
 
 steps:
   - command: echo "--> Concurrency gate"
