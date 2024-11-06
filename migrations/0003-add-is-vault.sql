@@ -1,0 +1,1 @@
+ALTER TABLE msol_holders ADD COLUMN is_vault BOOLEAN DEFAULT false;
