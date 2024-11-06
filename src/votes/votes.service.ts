@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   DirectedStakeSdk,
-  findVoteRecords,
   DirectedStakeVoteRecord,
+  findVoteRecords,
 } from '@marinade.finance/directed-stake-sdk';
 import { SolanaService } from 'src/solana/solana.service';
 import { Keypair } from '@solana/web3.js';
@@ -323,10 +323,10 @@ export class VotesService {
                 INSERT INTO msol_votes (batch_id, owner, vote_account)
                 SELECT *
                 FROM jsonb_to_recordset(${sql.jsonb(
-                  batch.map(({ owner, validatorVote }) => ({
+                  batch.map(({ owner, target }) => ({
                     batchId,
                     owner: owner.toBase58(),
-                    voteAccount: validatorVote.toBase58(),
+                    voteAccount: target.toBase58(),
                   })),
                 )})
                 AS t ("batchId" integer, owner text, "voteAccount" text)`);
