@@ -18,10 +18,13 @@ export class StakersService {
     startDate?: string,
     endDate?: string,
   ): Promise<NativeStakeBalanceDto[] | null> {
+    this.logger.log(
+      `Fetching getNativeStakeBalances for authority ${withdraw_authority} [${startDate},${endDate}]`,
+    );
+
     if (!startDate) {
       startDate = new Date(0).toISOString();
     }
-
     if (!endDate) {
       endDate = new Date(Date.now()).toISOString();
     }
@@ -54,8 +57,11 @@ export class StakersService {
     startDate?: string,
     endDate?: string,
   ): Promise<AllNativeStakeBalancesDto | null> {
-    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
+    this.logger.log(
+      `Fetching getAllNativeStakeBalances [${startDate},${endDate}]`,
+    );
 
+    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
     const result = await this.rdsService.pool.any(
       StakersService.getSqlAllNativeHolders(startDate, endDate),
     );
@@ -90,8 +96,11 @@ export class StakersService {
     startDate?: string,
     endDate?: string,
   ): Promise<StakerBalancesDto | null> {
-    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
+    this.logger.log(
+      `Fetching getAllStakeBalances for ${pubkey} [${startDate},${endDate}]`,
+    );
 
+    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
     const result = await this.rdsService.pool.any(sql.unsafe`
         WITH 
             native_holdings AS (
@@ -141,8 +150,9 @@ export class StakersService {
     startDate?: string,
     endDate?: string,
   ): Promise<StakerBalancesDto[]> {
-    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
+    this.logger.log(`Fetching getAllStakersBalances [${startDate},${endDate}]`);
 
+    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
     const resultLiquid = this.rdsService.pool.any(
       StakersService.getSqlAllLiquidHolders(startDate, endDate),
     );

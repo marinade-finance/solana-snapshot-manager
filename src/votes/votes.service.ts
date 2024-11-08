@@ -38,7 +38,7 @@ export class VotesService {
   }
 
   async getLatestMSolVotes(): Promise<MSolVoteRecordsDto | null> {
-    this.logger.log('Fetching mSOL votes from DB...');
+    this.logger.log('Fetching latest mSOL votes from DB...');
     const result = await this.rdsService.pool.any(sql.unsafe`
             WITH last_batch AS (
                 SELECT *
@@ -62,7 +62,9 @@ export class VotesService {
             INNER JOIN last_batch ON msol_votes.batch_id = last_batch.batch_id
         `);
 
-    this.logger.log('Vote records fetched', { count: result.length });
+    this.logger.log('Latest MSOL vote records fetched', {
+      count: result.length,
+    });
 
     if (result.length === 0) {
       return null;
@@ -83,7 +85,9 @@ export class VotesService {
     startDate: string,
     endDate: string,
   ): Promise<MSolVoteSnapshotsDto | null> {
-    this.logger.log('Fetching all mSOL votes from DB...');
+    this.logger.log(
+      `Fetching all mSOL votes from DB [${startDate},${endDate}]`,
+    );
 
     if (!startDate) {
       startDate = new Date(0).toISOString();
@@ -122,7 +126,7 @@ export class VotesService {
             ORDER BY vb.batch_id DESC
   `);
 
-    this.logger.log('All vote records fetched', { count: result.length });
+    this.logger.log('All mSOL vote records fetched', { count: result.length });
 
     if (result.length === 0) {
       return null;
@@ -170,7 +174,7 @@ export class VotesService {
   }
 
   async getLatestveMNDEVotes(): Promise<VeMNDEVoteRecordsDto | null> {
-    this.logger.log('Fetching veMNDE votes from DB...');
+    this.logger.log('Fetching latest veMNDE votes from DB...');
     const result = await this.rdsService.pool.any(sql.unsafe`
             WITH last_batch AS (
                 SELECT *
@@ -194,7 +198,9 @@ export class VotesService {
             INNER JOIN last_batch ON msol_votes.batch_id = last_batch.batch_id
         `);
 
-    this.logger.log('Vote records fetched', { count: result.length });
+    this.logger.log('Latest MNDE vote records fetched', {
+      count: result.length,
+    });
 
     if (result.length === 0) {
       return null;
@@ -215,7 +221,9 @@ export class VotesService {
     startDate: string,
     endDate: string,
   ): Promise<VeMNDEVoteSnapshotsDto | null> {
-    this.logger.log('Fetching all veMNDE votes from DB...');
+    this.logger.log(
+      `Fetching all veMNDE votes from DB [${startDate},${endDate}]`,
+    );
 
     if (!startDate) {
       startDate = new Date(0).toISOString();
@@ -253,7 +261,7 @@ export class VotesService {
             WHERE vb.created_at >= ${startDate} AND vb.created_at <= ${endDate}
             ORDER BY vb.batch_id DESC
   `);
-    this.logger.log('All vote records fetched', { count: result.length });
+    this.logger.log('All MNDE vote records fetched', { count: result.length });
 
     if (result.length === 0) {
       return null;
