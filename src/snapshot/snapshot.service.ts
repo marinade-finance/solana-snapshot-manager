@@ -75,6 +75,9 @@ export class SnapshotService {
   async getMsolBalanceFromLastSnaphot(
     owner: string,
   ): Promise<MsolBalanceDto | null> {
+    this.logger.log(
+      `Fetching getMsolBalanceFromLastSnaphot for owner ${owner}`,
+    );
     const result = await this.rdsService.pool.maybeOne(sql.unsafe`
             WITH last_snapshot AS (
                 SELECT *
@@ -87,11 +90,11 @@ export class SnapshotService {
             WHERE owner = ${owner}
         `);
     if (!result) {
-      this.logger.warn('Holder not found!', { owner });
+      this.logger.warn('Msol holder not found!', { owner });
       return null;
     }
 
-    this.logger.log('Holder data fetched', { owner, result });
+    this.logger.log('Msol holder data fetched', { owner, result });
     return {
       amount: result.amount,
       slot: result.slot,
@@ -102,6 +105,9 @@ export class SnapshotService {
   async getVeMNDEBalanceFromLastSnaphot(
     owner: string,
   ): Promise<VeMNDEBalanceDto | null> {
+    this.logger.log(
+      `Fetching getVeMNDEBalanceFromLastSnaphot for owner ${owner}`,
+    );
     const result = await this.rdsService.pool.maybeOne(sql.unsafe`
             WITH last_snapshot AS (
                 SELECT *
@@ -114,11 +120,11 @@ export class SnapshotService {
             WHERE owner = ${owner}
         `);
     if (!result) {
-      this.logger.warn('Holder not found!', { owner });
+      this.logger.warn('VeMNDE holder not found!', { owner });
       return null;
     }
 
-    this.logger.log('Holder data fetched', { owner, result });
+    this.logger.log('VeMNDE holder data fetched', { owner, result });
     return {
       amount: result.amount,
       slot: result.slot,
