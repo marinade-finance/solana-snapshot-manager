@@ -13,12 +13,13 @@ export class IpLoggerInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    const { headers, url } = request;
+    const { url } = request;
+    const cfIp = request.headers['cf-connecting-ip'];
+    const requestIp = cfIp || request.ip;
 
     this.logger.log('Request Headers:', {
       url,
-      requestIp: request.ip,
-      headers,
+      requestIp,
     });
 
     return next.handle();
