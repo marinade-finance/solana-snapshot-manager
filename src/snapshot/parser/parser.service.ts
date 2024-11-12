@@ -65,9 +65,7 @@ export class ParserService {
 
     return {
       account_owners: SYSTEM_PROGRAM,
-      account_mints: [
-        MSOL_MINT,
-      ].join(','),
+      account_mints: [MSOL_MINT].join(','),
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
     };
   }
