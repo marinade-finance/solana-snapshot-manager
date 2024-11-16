@@ -41,6 +41,9 @@ import { KaminoMarket } from '@hubbleprotocol/kamino-lending-sdk';
 import { FarmAndKey, Farms, UserAndKey, WAD } from '@hubbleprotocol/farms-sdk';
 import { WhirlpoolStrategy } from '@hubbleprotocol/kamino-sdk/dist/kamino-client/accounts';
 import { Decimal } from 'decimal.js';
+import { JSONParser } from '@streamparser/json-node';
+import { Readable } from 'stream';
+import { ReadableStream } from 'stream/web';
 
 const enum Source {
   WALLET = 'WALLET',
@@ -478,24 +481,45 @@ export class ParserService {
     return buf;
   }
 
-  private async getRaydiumLiquidityPools() {
-    const response = await fetch(
-      'https://api.raydium.io/v2/sdk/liquidity/mainnet.json',
-    );
-    return await response.json();
+  private async getRaydiumLiquidityPools(): Promise<
+    { lp: string; vault: string }[]
+  > {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const poolsResponse = await fetch(
+          'https://api.raydium.io/v2/sdk/liquidity/mainnet.json',
+        );
+        const result: { lp: string; vault: string }[] = [];
+
+        const parser = new JSONParser({
+          paths: ['$.official.*', '$.unOfficial.*'],
+          keepStack: false,
+        });
+
+        const stream = poolsResponse.body as unknown as ReadableStream<any>;
+        Readable.fromWeb(stream)
+          .pipe(parser)
+          .on('data', ({ value: pool }) => {
+            if (pool.baseMint === MSOL_MINT) {
+              result.push({ lp: pool.lpMint, vault: pool.baseVault });
+            } else if (pool.quoteMint === MSOL_MINT) {
+              result.push({ lp: pool.lpMint, vault: pool.quoteVault });
+            }
+          })
+          .on('error', (err) => {
+            reject(err);
+          })
+          .on('end', () => {
+            resolve(result);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   private async getRaydiumLiquidityLpsAndMsolVaults() {
-    const pools = await this.getRaydiumLiquidityPools();
-
-    const result: { lp: string; vault: string }[] = [];
-    for (const pool of [...pools.official, ...pools.unOfficial]) {
-      if (pool.baseMint === MSOL_MINT) {
-        result.push({ lp: pool.lpMint, vault: pool.baseVault });
-      } else if (pool.quoteMint === MSOL_MINT) {
-        result.push({ lp: pool.lpMint, vault: pool.quoteVault });
-      }
-    }
+    const result = await this.getRaydiumLiquidityPools();
     this.logger.log('Raydium mSol vaults', { count: result.length });
     return result;
   }
