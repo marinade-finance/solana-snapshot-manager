@@ -63,9 +63,9 @@ steps:
       - pnpm run cli -- record-msol-votes
       - buildkite-agent meta-data set slot "$$SLOT"
     key: 'parsing-snapshot'
-    # retry:
-    #   automatic:
-    #     - limit: 2
+    retry:
+      automatic:
+        - limit: 2
 
   - wait: ~
 
