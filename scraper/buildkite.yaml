@@ -41,7 +41,8 @@ steps:
       ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
       aws ecr get-login-password --region "$$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com"
       docker pull "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG"
-      wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -q -P "$$DATA_DIR" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
+      # wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -q -P "$$DATA_DIR" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
+      sudo docker run -it --rm -v "$$DATA_DIR":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot
       buildkite-agent meta-data set account_id "$$ACCOUNT_ID"
 
   - wait: ~
@@ -51,18 +52,20 @@ steps:
       - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 20 minutes" && sleep 1200'
       - set -x -e
       - account_id=${EPOCH:-$(buildkite-agent meta-data get account_id)}
-      - SLOT=$(tar -tf "$$DATA_DIR"/snapshot.tar.bz2 | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
+      - SNAPSHOT_FILE_PATH=$(ls -1 "$$DATA_DIR"/snapshot-*.tar.zst | head -n 1)
+      - SNAPSHOT_FILE=$(basename "$$SNAPSHOT_FILE_PATH")
+      - SLOT=$(tar -tf "$$SNAPSHOT_FILE_PATH" | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
       - pnpm install --frozen-lockfile
       - pnpm run cli -- filters --json-output filters.json
-      - docker run -u $(id -u buildkite-agent) --rm --volume "$$DATA_DIR:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$$account_id.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG" /usr/local/bin/solana-snapshot-etl /data/snapshot.tar.bz2 --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
+      - docker run -u $(id -u buildkite-agent) --rm --volume "$$DATA_DIR:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$$account_id.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG" /usr/local/bin/solana-snapshot-etl /data/$$SNAPSHOT_FILE --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
       - ./index-db.bash "$$DATA_DIR"/snapshot.db
       - pnpm run cli -- parse --sqlite "$$DATA_DIR"/snapshot.db --csv-output "$$DATA_DIR"/snapshot.csv --slot "$$SLOT --psql-output"
       - pnpm run cli -- record-msol-votes
       - buildkite-agent meta-data set slot "$$SLOT"
     key: 'parsing-snapshot'
-    retry:
-      automatic:
-        - limit: 2
+    # retry:
+    #   automatic:
+    #     - limit: 2
 
   - wait: ~
 
