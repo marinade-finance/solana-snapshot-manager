@@ -42,7 +42,7 @@ steps:
       aws ecr get-login-password --region "$$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com"
       docker pull "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG"
       # wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -q -P "$$DATA_DIR" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
-      sudo docker run -it --rm -v "$$DATA_DIR":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot
+      docker run -it --rm -v "$$DATA_DIR":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot
       buildkite-agent meta-data set account_id "$$ACCOUNT_ID"
 
   - wait: ~
