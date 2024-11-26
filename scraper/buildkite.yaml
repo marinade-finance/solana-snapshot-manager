@@ -24,12 +24,14 @@ steps:
 
   - wait: ~
 
-  - label: ":drum_with_drumsticks: Preparation"
+  - label: ":file_folder: Prepare snapshot directory"
     commands:
-    - |
-      echo "Data directory: $$DATA_DIR"
-      mkdir -p "$$DATA_DIR"
-      rm -f "$$DATA_DIR/"*
+    - set -x
+    - mkdir -p "$$DATA_DIR"
+    - snapshot_dir=$(mktemp --directory -p "$$DATA_DIR" "snapshot-$(date +%s)-XXXXXX")
+    - chmod -R 777 "$$snapshot_dir"
+    - buildkite-agent meta-data set snapshot_dir "$$snapshot_dir"
+    key: prepare-snapshot-directory
 
   - wait: ~
 
@@ -133,7 +135,7 @@ steps:
     - 'snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)'
     - 'echo "Cleaning snapshot dir: $$snapshot_dir"'
     - 'rm -r "$$snapshot_dir"'
-    depends_on: prepare-snapshot-directory
+    depends_on: parsing-snapshot
     allow_dependency_failure: true
 
   - wait: ~
