@@ -58,13 +58,13 @@ steps:
       - SNAPSHOT_FILE_PATH=$(ls -1 "$$DATA_DIR"/snapshot-*.tar.zst | head -n 1)
       - SNAPSHOT_FILE=$(basename "$$SNAPSHOT_FILE_PATH")
       - SLOT=$(tar -tf "$$SNAPSHOT_FILE_PATH" | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
+      - buildkite-agent meta-data set slot "$$SLOT"
       - pnpm install --frozen-lockfile
       - pnpm run cli -- filters --json-output filters.json
       - docker run -u $(id -u buildkite-agent) --rm --volume "$$DATA_DIR:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$$account_id.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG" /usr/local/bin/solana-snapshot-etl /data/$$SNAPSHOT_FILE --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
       - ./index-db.bash "$$DATA_DIR"/snapshot.db
       - pnpm run cli -- parse --sqlite "$$DATA_DIR"/snapshot.db --csv-output "$$DATA_DIR"/snapshot.csv --slot "$$SLOT --psql-output"
       - pnpm run cli -- record-msol-votes
-      - buildkite-agent meta-data set slot "$$SLOT"
     key: 'parsing-snapshot'
     retry:
       automatic:
@@ -75,16 +75,23 @@ steps:
   - label: ":loudspeaker: Notification"
     commands:
     - 'build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")'
-    - '[[ "$$build_result" =~ "failed" ]] && notification_result="FAILED" || notification_result="SUCCEEDED"'
     - |
-      slot=${EPOCH:-$(buildkite-agent meta-data get slot)}
+      if [[ "$$build_result" =~ "failed" ]]; then
+        notification_result="FAILED"
+        notification_color="15158110"
+      else
+        notification_result="SUCCEEDED"
+        notification_color="16121807"
+      fi
+    - slot=${buildkite-agent meta-data get slot || echo "unknown"}
+    - |
       # This hook should be changed for owned by the snapshot manager
       curl "$$DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER" -H "Content-Type: application/json" -d '{
         "embeds": [
           {
             "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
             "url": "'"$$BUILDKITE_BUILD_URL"'",
-            "color": "16121807"
+            "color": "'"$$notification_color"'"
           }
         ]
       }'
