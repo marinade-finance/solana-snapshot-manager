@@ -1,15 +1,14 @@
 env:
   DATA_DIR: /mnt/storage-1/solana-snapshot-manager
-  PNPM_HOME: "$$DATA_DIR/pnpm"
-  TAG: e87603e
-  NODE_OPTIONS: --max-old-space-size=16384
+  SNAPSHOT_URL: http://api.mainnet-beta.solana.com/snapshot.tar.bz2
 
 agents:
   queue: "snapshots"
 
 steps:
-  - command: echo "--> Concurrency gate"
-    concurrency_group: 'solana-snapshot-manager/parsing'
+  - label: ":closed_lock_with_key: Concurrency gate lock"
+    command: echo "--> Start of concurrency gate"
+    concurrency_group: 'solana-snapshot-manager/parsing2'
     concurrency: 1
 
   - wait: ~
@@ -25,45 +24,69 @@ steps:
 
   - wait: ~
 
-  - label: ":drum_with_drumsticks: Preparation"
+  - label: ":file_folder: Prepare snapshot directory"
     commands:
-    - |
-      echo "Data directory: $$DATA_DIR"
-      mkdir -p "$$DATA_DIR"
-      rm -rf "$$DATA_DIR/"*
+    - set -x
+    - mkdir -p "$$DATA_DIR"
+    - snapshot_dir=$(mktemp --directory -p "$$DATA_DIR" "snapshot-$(date +%s)-XXXXXX")
+    - chmod -R 777 "$$snapshot_dir"
+    - buildkite-agent meta-data set snapshot_dir "$$snapshot_dir"
+    key: prepare-snapshot-directory
 
   - wait: ~
 
   - label: ":floppy_disk: Downloading snapshot"
     commands:
+    - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
     - |
-      set -x -e
-      ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-      aws ecr get-login-password --region "$$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com"
-      buildkite-agent meta-data set account_id "$$ACCOUNT_ID"
-      docker pull "$$ACCOUNT_ID.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG"
-      docker run -it --rm -v "$$DATA_DIR":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot --max_snapshot_age 20000 --min_download_speed 10 --max_latency 500 | tee ./log.out
+      docker run -it --rm -v "$$snapshot_dir":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot --max_snapshot_age 20000 --min_download_speed 10 --max_latency 500 | tee ./log.out
       if grep -q -e 'ERROR.*Could not find a suitable snapshot' ./log.out; then
         echo "Error to download snapshot. Using RPC to get the snapshot"
-        wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -P "$$DATA_DIR" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
+        wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -P "$$snapshot_dir" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
       fi
+
+  - label: ":hammer_and_wrench: :rust: Building solana-snapshot-parser"
+    commands:
+    - source '/var/lib/buildkite-agent/.cargo/env'
+    - git clone git@github.com:marinade-finance/solana-snapshot-parser.git
+    - cd solana-snapshot-parser
+    - cargo build --release --bin snapshot-parser-tokens-cli
+    key: solana-snapshot-parser
+    artifact_paths:
+      - solana-snapshot-parser/target/release/snapshot-parser-tokens-cli
+      - solana-snapshot-parser/scripts/fetch-genesis.bash
+
+  - label: ":cloud: :arrow_right: :floppy_disk: Fetch genesis"
+    commands:
+    - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
+    - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/scripts/fetch-genesis.bash .
+    - bash ./solana-snapshot-parser/scripts/fetch-genesis.bash "$$snapshot_dir"
+    depends_on: solana-snapshot-parser
+
+  - label: ":handball: :typescript: Generate filters.json"
+    commands:
+    - pnpm install --frozen-lockfile
+    - pnpm run cli -- filters --json-output ./filters.json
+    artifact_paths:
+      - filters.json
 
   - wait: ~
 
   - label: ":file_folder: Parsing snapshot"
+    env:
+      RUST_BACKTRACE: 1
     commands:
       - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 20 minutes" && sleep 1200'
-      - set -x -e
-      - account_id=${EPOCH:-$(buildkite-agent meta-data get account_id)}
-      - SNAPSHOT_FILE_PATH=$(ls -1 "$$DATA_DIR"/snapshot-*.tar.zst | head -n 1)
-      - SNAPSHOT_FILE=$(basename "$$SNAPSHOT_FILE_PATH")
-      - SLOT=$(tar -tf "$$SNAPSHOT_FILE_PATH" | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
-      - buildkite-agent meta-data set slot "$$SLOT"
+      - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/target/release/snapshot-parser-tokens-cli .
+      - buildkite-agent artifact download --include-retried-jobs filters.json .
+      - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
+      - slot=$(tar -tf "$$snapshot_dir"/snapshot-*tar.zst | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
+      - buildkite-agent meta-data set slot "$$slot"
+      - chmod +x ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli
+      - ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli --ledger-path "$$snapshot_dir" --output-sqlite "$${snapshot_dir}/snapshot.db" --filters './filters.json' --sqlite-tx-bulk 2000
+      - ./index-db.bash "$${snapshot_dir}/snapshot.db"
       - pnpm install --frozen-lockfile
-      - pnpm run cli -- filters --json-output filters.json
-      - docker run -u $(id -u buildkite-agent) --rm --volume "$$DATA_DIR:/data" --volume "$(realpath ./filters.json):/filters.json:ro" "$$account_id.dkr.ecr.$$AWS_DEFAULT_REGION.amazonaws.com/marinade.finance/snapshot-etl:$$TAG" /usr/local/bin/solana-snapshot-etl /data/$$SNAPSHOT_FILE --sqlite-out /data/snapshot.db --sqlite-tx-bulk 2000
-      - ./index-db.bash "$$DATA_DIR"/snapshot.db
-      - pnpm run cli -- parse --sqlite "$$DATA_DIR"/snapshot.db --csv-output "$$DATA_DIR"/snapshot.csv --slot "$$SLOT --psql-output"
+      - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot" --psql-output
       - pnpm run cli -- record-msol-votes
     key: 'parsing-snapshot'
     retry:
@@ -72,9 +95,28 @@ steps:
 
   - wait: ~
 
+  - label: ":black_nib: Find Discord webhook"
+    commands:
+    - |
+      discord_webhook=$(buildkite-agent meta-data get discord_webhook) || true
+      if [[ -z "$$discord_webhook" ]]; then
+        # env defined by job definition
+        discord_webhook="${DISCORD_WEBHOOK}"
+      fi
+      if [[ -z "$$discord_webhook" ]]; then
+        # env defined by buildkite environment
+        discord_webhook="$${DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER}"
+      fi
+      buildkite-agent meta-data set discord_webhook "$$discord_webhook"
+    key: discord-webhook
+    depends_on: parsing-snapshot
+    allow_dependency_failure: true
+  
+  - wait: ~
+
   - label: ":loudspeaker: Notification"
     commands:
-    - 'build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")'
+    - build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")
     - |
       if [[ "$$build_result" =~ "failed" ]]; then
         notification_result="FAILED"
@@ -85,8 +127,8 @@ steps:
       fi
     - slot=${buildkite-agent meta-data get slot || echo "unknown"}
     - |
-      # This hook should be changed for owned by the snapshot manager
-      curl "$$DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER" -H "Content-Type: application/json" -d '{
+      curl "$(buildkite-agent meta-data get discord_webhook)" \
+        -H "Content-Type: application/json" -d '{
         "embeds": [
           {
             "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
@@ -95,8 +137,22 @@ steps:
           }
         ]
       }'
-    depends_on: "parsing-snapshot"
+    depends_on: discord-webhook
     allow_dependency_failure: true
-      
-      
-      
+
+  - wait: ~
+
+  - label: ":basket: Cleanup"
+    commands:
+    - 'snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)'
+    - 'echo "Cleaning snapshot dir: $$snapshot_dir"'
+    - 'rm -r "$$snapshot_dir"'
+    depends_on: parsing-snapshot
+    allow_dependency_failure: true
+
+  - wait: ~
+
+  - label: ":unlock: Concurrency gate unlock"
+    command: echo "End of concurrency gate <--"
+    concurrency_group: 'solana-snapshot-manager/parsing2'
+    concurrency: 1
