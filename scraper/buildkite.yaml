@@ -86,12 +86,13 @@ steps:
       - ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli --ledger-path "$$snapshot_dir" --output-sqlite "$${snapshot_dir}/snapshot.db" --filters './filters.json' --sqlite-tx-bulk 2000
       - ./index-db.bash "$${snapshot_dir}/snapshot.db"
       - pnpm install --frozen-lockfile
-      - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot" --psql-output
-      - pnpm run cli -- record-msol-votes
+      - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot"
+      # --psql-output
+      # - pnpm run cli -- record-msol-votes
     key: 'parsing-snapshot'
-    retry:
-      automatic:
-        - limit: 2
+    # retry:
+    #   automatic:
+    #     - limit: 2
 
   - wait: ~
 
@@ -146,7 +147,7 @@ steps:
     commands:
     - 'snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)'
     - 'echo "Cleaning snapshot dir: $$snapshot_dir"'
-    - 'rm -r "$$snapshot_dir"'
+    # - 'rm -r "$$snapshot_dir"'
     depends_on: parsing-snapshot
     allow_dependency_failure: true
 
