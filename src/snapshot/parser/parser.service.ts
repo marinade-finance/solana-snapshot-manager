@@ -147,7 +147,6 @@ export class ParserService {
     ).map(({ lp }) => lp);
     const mercurialStableSwapPoolMint = this.getMercurialStableSwapPoolLps();
     const meteoraVaults = await this.getMercurialMeteoraVaultsLps();
-    const mercurialAmmPoolsLps = await this.getMercurialAmmPoolsLps();
     const solend_reserve_info =
       await this.solanaService.connection.getAccountInfo(
         new PublicKey(SOLEND_RESERVE_ADDR),
@@ -195,7 +194,6 @@ export class ParserService {
         ...raydiumLiquidityPools,
         mercurialStableSwapPoolMint.lp,
         ...meteoraVaults.map((v) => v.lp),
-        ...mercurialAmmPoolsLps.map((v) => v.lp),
         ...(await this.getKaminoShareMintsForFilters()),
       ].join(','),
       whirlpool_pool_address: whirlpools
@@ -208,7 +206,7 @@ export class ParserService {
       solend_reserve_data: solend_reserve_info.data.toString('base64'),
       mango_bank_deposit_index: mango_bank_deposit_index,
       meteora_vaults: meteoraVaults.map((v) => v.vault).join(','),
-      mercurial_pools: mercurialAmmPoolsLps.map((v) => v.pool).join(','),
+      mercurial_pools: '',
     };
   }
 
