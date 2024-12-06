@@ -48,7 +48,7 @@ steps:
   - label: ":hammer_and_wrench: :rust: Building solana-snapshot-parser"
     commands:
     - source '/var/lib/buildkite-agent/.cargo/env'
-    - git clone git@github.com:marinade-finance/solana-snapshot-parser.git
+    - git clone git@github.com:marinade-finance/solana-snapshot-parser.git -b refactor-to
     - cd solana-snapshot-parser
     - cargo build --release --bin snapshot-parser-tokens-cli
     key: solana-snapshot-parser
@@ -74,8 +74,10 @@ steps:
 
   - label: ":file_folder: Parsing snapshot"
     env:
-      RUST_BACKTRACE: 1
+      RUST_BACKTRACE: full
     commands:
+      - |
+        set -x -e
       - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 20 minutes" && sleep 1200'
       - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/target/release/snapshot-parser-tokens-cli .
       - buildkite-agent artifact download --include-retried-jobs filters.json .
@@ -86,12 +88,13 @@ steps:
       - ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli --ledger-path "$$snapshot_dir" --output-sqlite "$${snapshot_dir}/snapshot.db" --filters './filters.json' --sqlite-tx-bulk 2000
       - ./index-db.bash "$${snapshot_dir}/snapshot.db"
       - pnpm install --frozen-lockfile
-      - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot" --psql-output
-      - pnpm run cli -- record-msol-votes
+      - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot"
+      # --psql-output
+      # - pnpm run cli -- record-msol-votes
     key: 'parsing-snapshot'
-    retry:
-      automatic:
-        - limit: 2
+    # retry:
+    #   automatic:
+    #     - limit: 2
 
   - wait: ~
 
@@ -146,7 +149,7 @@ steps:
     commands:
     - 'snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)'
     - 'echo "Cleaning snapshot dir: $$snapshot_dir"'
-    - 'rm -r "$$snapshot_dir"'
+    # - 'rm -r "$$snapshot_dir"'
     depends_on: parsing-snapshot
     allow_dependency_failure: true
 
