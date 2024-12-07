@@ -56,6 +56,10 @@ steps:
       - set -x -e
       - account_id=${EPOCH:-$(buildkite-agent meta-data get account_id)}
       - SNAPSHOT_FILE_PATH=$(ls -1 "$$DATA_DIR"/snapshot-*.tar.zst | head -n 1)
+      - |
+        if [ -z "$SNAPSHOT_FILE_PATH" ]; then
+          SNAPSHOT_FILE_PATH=$(ls -1 "$$DATA_DIR"/snapshot-*.tar.lz4 | head -n 1)
+        fi
       - SNAPSHOT_FILE=$(basename "$$SNAPSHOT_FILE_PATH")
       - SLOT=$(tar -tf "$$SNAPSHOT_FILE_PATH" | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
       - buildkite-agent meta-data set slot "$$SLOT"
