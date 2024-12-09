@@ -149,6 +149,26 @@ export class ParserService {
     }[];
   }
 
+  private getTokenAccountsByMint(
+    db: SQLite.Database,
+    mint: string,
+  ): { owner: string; amount: string; pubkey: string }[] {
+    return db
+      .prepare(
+        `
+          SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
+          FROM token_account, account
+          WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND token_account.amount > 0
+          ORDER BY token_account.amount DESC
+        `,
+      )
+      .all([mint]) as {
+      owner: string;
+      amount: string;
+      pubkey: string;
+    }[];
+  }
+
   private getMintSupply(db: SQLite.Database, mint: string): BN | null {
     const [record] = db
       .prepare(
@@ -166,7 +186,7 @@ export class ParserService {
   private mSolHolders(db: SQLite.Database): Record<string, BN> {
     const buf: Record<string, BN> = {};
     this.logger.log('Parsing mSOL holders');
-    const tokenAccounts = this.getSystemOwnedTokenAccountsByMint(db, MSOL_MINT);
+    const tokenAccounts = this.getTokenAccountsByMint(db, MSOL_MINT);
     tokenAccounts.forEach((tokenAccount) => {
       buf[tokenAccount.owner] = (buf[tokenAccount.owner] ?? new BN(0)).add(
         new BN(tokenAccount.amount),
