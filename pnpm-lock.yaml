@@ -2974,15 +2974,6 @@ packages:
   flatted@3.3.2:
     resolution: {integrity: sha512-AiwGJM8YcNOaobumgtng+6NHuOqC3A7MixFeDafM3X9cIUM+xUXoS5Vfgf+OihAYe20fxqNM9yPBXJzRtZ/4eA==}
 
-  follow-redirects@1.15.2:
-    resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-
   follow-redirects@1.15.9:
     resolution: {integrity: sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ==}
     engines: {node: '>=4.0'}
@@ -6057,32 +6048,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@hubbleprotocol/farms-sdk@0.3.28(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(chai@4.3.8)(decimal.js@10.4.3)(utf-8-validate@5.0.10)':
-    dependencies:
-      '@coral-xyz/anchor': 0.28.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@coral-xyz/borsh': 0.28.0(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))
-      '@hubbleprotocol/kamino-lending-sdk': 2.8.48(@saberhq/solana-contrib@1.14.11(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bn.js@5.2.1))(@saberhq/token-utils@1.14.11(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bn.js@5.2.1)(bufferutil@4.0.7)(jsbi@4.3.0)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(chai@4.3.8)(utf-8-validate@5.0.10)
-      '@hubbleprotocol/scope-sdk': 3.0.6(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(decimal.js@10.4.3)(utf-8-validate@5.0.10)
-      '@project-serum/serum': 0.13.65(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@solana/spl-token': 0.1.8(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@solana/web3.js': 1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      base58-js: 1.0.5
-      bn.js: 5.2.1
-      bs58: 4.0.1
-      chai-as-promised: 7.1.1(chai@4.3.8)
-      ci: 2.3.0
-      commander: 9.5.0
-      decimal.js: 10.4.3
-      decimal.js-light: 2.5.1
-      fast-check: 3.14.0
-      nyc: 15.1.0
-    transitivePeerDependencies:
-      - bufferutil
-      - chai
-      - encoding
-      - supports-color
-      - utf-8-validate
-
   '@hubbleprotocol/hubble-config@3.0.0(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))':
     dependencies:
       '@solana/web3.js': 1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
@@ -6131,7 +6096,7 @@ snapshots:
     dependencies:
       '@coral-xyz/anchor': 0.28.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@coral-xyz/borsh': 0.28.0(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))
-      '@hubbleprotocol/farms-sdk': 0.3.28(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(chai@4.3.8)(decimal.js@10.4.3)(utf-8-validate@5.0.10)
+      '@hubbleprotocol/farms-sdk': 0.3.28(@saberhq/solana-contrib@1.14.11(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bn.js@5.2.1))(@saberhq/token-utils@1.14.11(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bn.js@5.2.1)(bufferutil@4.0.7)(jsbi@4.3.0)(utf-8-validate@5.0.10))(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(chai@4.3.8)(decimal.js@10.4.3)(utf-8-validate@5.0.10)
       '@hubbleprotocol/kamino-sdk': 3.0.17(@saberhq/solana-contrib@1.14.11(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bn.js@5.2.1))(@saberhq/token-utils@1.14.11(@solana/web3.js@1.75.1(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bn.js@5.2.1)(bufferutil@4.0.7)(jsbi@4.3.0)(utf-8-validate@5.0.10))(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(decimal.js@10.4.3)(utf-8-validate@5.0.10)
       '@hubbleprotocol/scope-sdk': 3.0.6(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(decimal.js@10.4.3)(utf-8-validate@5.0.10)
       '@pythnetwork/client': 2.14.0(@solana/web3.js@1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10))(bufferutil@4.0.7)(utf-8-validate@5.0.10)
@@ -9103,7 +9068,7 @@ snapshots:
 
   axios@0.25.0:
     dependencies:
-      follow-redirects: 1.15.2
+      follow-redirects: 1.15.9(debug@4.3.4)
     transitivePeerDependencies:
       - debug
 
@@ -9116,7 +9081,7 @@ snapshots:
 
   axios@1.3.6:
     dependencies:
-      follow-redirects: 1.15.2
+      follow-redirects: 1.15.9(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -9124,7 +9089,7 @@ snapshots:
 
   axios@1.5.1:
     dependencies:
-      follow-redirects: 1.15.2
+      follow-redirects: 1.15.9(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -10259,8 +10224,6 @@ snapshots:
   flatted@3.2.7: {}
 
   flatted@3.3.2: {}
-
-  follow-redirects@1.15.2: {}
 
   follow-redirects@1.15.9(debug@4.3.4):
     optionalDependencies:
