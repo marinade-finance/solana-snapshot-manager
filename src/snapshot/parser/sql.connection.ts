@@ -27,7 +27,6 @@ export class SQLConnection extends Connection {
   ) {
     // for any other calls than getAccountInfo, we want to to use the real RPC connection
     super(backupRpcEndpoint, {
-      httpAgent: false,
       // faking fetch as we don't want to do any real network calls
       fetch: async (
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
