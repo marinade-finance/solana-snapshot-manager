@@ -109,10 +109,10 @@ importers:
         version: 7.8.0
       slonik:
         specifier: ^33.3.0
-        version: 33.3.0(zod@3.21.4)
+        version: 33.3.0(zod@3.22.3)
       zod:
-        specifier: ^3.21.4
-        version: 3.21.4
+        specifier: ^3.22.3
+        version: 3.22.3
     devDependencies:
       '@nestjs/cli':
         specifier: ^9.0.0
@@ -5061,8 +5061,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@3.21.4:
-    resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
+  zod@3.22.3:
+    resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
 
 snapshots:
 
@@ -11683,7 +11683,7 @@ snapshots:
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
 
-  slonik@33.3.0(zod@3.21.4):
+  slonik@33.3.0(zod@3.22.3):
     dependencies:
       '@types/pg': 8.6.6
       concat-stream: 2.0.0
@@ -11704,7 +11704,7 @@ snapshots:
       safe-stable-stringify: 2.4.3
       serialize-error: 8.1.0
       through2: 4.0.2
-      zod: 3.21.4
+      zod: 3.22.3
     transitivePeerDependencies:
       - pg-native
 
@@ -12373,4 +12373,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.21.4: {}
+  zod@3.22.3: {}
