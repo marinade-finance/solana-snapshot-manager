@@ -529,6 +529,7 @@ packages:
 
   '@hubbleprotocol/farms-sdk@0.3.28':
     resolution: {integrity: sha512-SDvNwJBunNN0gs++2EEo1++wlDvPOcBvHSq40YrJprUNPZhcLsGAF7SH0DABg2lbPZ6yrS9eqLRrZ5EcTjsAzQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       '@solana/web3.js': ~1.73.3
       decimal.js: ^10.4.3
@@ -545,36 +546,44 @@ packages:
 
   '@hubbleprotocol/hubble-idl@3.0.17':
     resolution: {integrity: sha512-TYpEL/vqgN2IOK3FKN9y8jT1LEhSj607/h4f3/LSf1hA1oPt6xRQSf15H/+RJRnBEO/doX++teWdVZ5riXtxvw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@hubbleprotocol/hubble-idl@4.0.0':
     resolution: {integrity: sha512-2yxgqxHU0NLfsiGj2Qy+I0FTnnI6OSETZaYZX8wyA4XNRlaswCHvfvJs9FzQQAY1RMJ5Y/9gKbxueJQxvRtu+w==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@hubbleprotocol/kamino-lending-sdk@2.8.48':
     resolution: {integrity: sha512-s9zbLooQGPppuxh1h9lSqgqlz0lrj1fHkkMpSvEnapRpFhh+uBp5+d6ak8CZor1cyCvx0HaXnDjQN0TrdkK8nQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@hubbleprotocol/kamino-lending-sdk@2.8.59':
     resolution: {integrity: sha512-+TEvP4iYNqhhos6L4ZOhk+7SCHlYm3uwLzyqtrRBtSteNLVF7wic5m32ZuqQNry/cXc804Bx4IFPxUnVhkFBnQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@hubbleprotocol/kamino-sdk@3.0.17':
     resolution: {integrity: sha512-39iHmXSVteJLAd1zbH8h6/FgS2Hzb61FTMUHdAdArsZ2TTziYnjzAE4gm2GpprsCAX4xhtb/cJEk5ndfUJNJwA==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       '@solana/web3.js': ~1.78.4
       decimal.js: ^10.3.1
 
   '@hubbleprotocol/kamino-sdk@4.0.2':
     resolution: {integrity: sha512-kUaB1EhzV5DnmyJBeKGCFsrhsDy5eiKdCWH/TKIlV1KMgEm208NgUt74mcQWhoEKd60UmPVEBzUGkvphRlOcIA==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       '@solana/web3.js': ~1.78.4
       decimal.js: ^10.3.1
 
   '@hubbleprotocol/scope-sdk@3.0.6':
     resolution: {integrity: sha512-hq/fPFgXvdYrdDgnUAPY5Nwog68wtWPR7XBRIN1TsIMLeYgxFxPhDD+THT9ucsPmZX3hQoR5DiqITHeD0s7vCg==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       '@solana/web3.js': ^1.78.4
       decimal.js: ^10.3.1
 
   '@hubbleprotocol/scope-sdk@4.0.0':
     resolution: {integrity: sha512-e0b+g6HBaqf5/qIvFcKULKDOVykDdYkuyLlFAKphzf1v0r6UtBOJ5cLH40Iduw5NR6CYhtdZIQcfBoZS31NExw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       '@solana/web3.js': ^1.78.4
       decimal.js: ^10.3.1
@@ -582,10 +591,12 @@ packages:
   '@humanwhocodes/config-array@0.11.8':
     resolution: {integrity: sha512-UybHIJzJnR5Qc/MsD9Kr+RpO2h+/P1GhOwdiLPXK5TWk5sgTdu88bTD9UP+CKbPPh5Rni1u0GjAdYQLemG8g+g==}
     engines: {node: '>=10.10.0'}
+    deprecated: Use @eslint/config-array instead
 
   '@humanwhocodes/config-array@0.5.0':
     resolution: {integrity: sha512-FagtKFz74XrTl7y6HCzQpwDfXP0yhxe9lHLD1UZxjvZIcbyRz8zTFF/yYNfSfzU414eDwZ1SrO0Qvtyf+wFMQg==}
     engines: {node: '>=10.10.0'}
+    deprecated: Use @eslint/config-array instead
 
   '@humanwhocodes/module-importer@1.0.1':
     resolution: {integrity: sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==}
@@ -593,6 +604,7 @@ packages:
 
   '@humanwhocodes/object-schema@1.2.1':
     resolution: {integrity: sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==}
+    deprecated: Use @eslint/object-schema instead
 
   '@istanbuljs/load-nyc-config@1.1.0':
     resolution: {integrity: sha512-VjeHSlIzpv/NyD3N0YuHfXOPDIixcA1q2ZV98wsMqcYlPmv2n3Yb2lYP9XMElnaFVXg5A7YLTeLu6V84uQDjmQ==}
@@ -988,6 +1000,7 @@ packages:
 
   '@orca-so/aquafarm@0.0.12':
     resolution: {integrity: sha512-4vEkxeI5A5NHR9wre7Dtp9MYPCnke4v2PkaIv7933S490PErCYeqrlDPIEBTAKYWJpHFz5jR+h0bPFbmdMs3kw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@orca-so/common-sdk@0.0.4':
     resolution: {integrity: sha512-3YrVgrgt2HlDyzwE6KwmD/u3knFjNCGtKi/1HJsBQMcR95R99vVnsvQylnUcZ6CJm1KyjTAOl5lvEIzgFnu+3g==}
@@ -997,9 +1010,11 @@ packages:
 
   '@orca-so/sdk@1.2.26':
     resolution: {integrity: sha512-SnPqzUW5fGNFzDm1Ho09R07eCBHv50idXYjvCYdZzOUFdIO9M3dvpw69sT1OugDy2bETseiUSnVuUXEBpHHhGg==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@orca-so/stablecurve@1.0.8':
     resolution: {integrity: sha512-P+d2oPvsenkzZoZvDyIsUbfdBAdTXaaIWmm0bjWMrLzR/mOZlEDlEuYVuGF62L8e2E7SkrNeOKyic1jX+DavAA==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@orca-so/whirlpool-client-sdk@0.0.7':
     resolution: {integrity: sha512-fmGQjdRkW2lX1GqZVvrkklYfk0VpXbwuOw8AZA05RrqMZtSL+ePNZMBjBztlccxqKulweCPRCEYFXC17ZdNbAQ==}
@@ -1689,6 +1704,7 @@ packages:
 
   acorn-import-assertions@1.8.0:
     resolution: {integrity: sha512-m7VZ3jwz4eK6A4Vtt8Ew1/mNbP24u0FhdyfA7fSvnJR6LMdfOYnmuIrrJAgrYfYJ10F/otaHTtrtrtmHdMNzEw==}
+    deprecated: package has been renamed to acorn-import-attributes
     peerDependencies:
       acorn: ^8
 
@@ -1939,6 +1955,7 @@ packages:
 
   boolean@3.2.0:
     resolution: {integrity: sha512-d0II/GO9uf9lfUHH2BQsjxzRJZBdsjgsBiW4BvhWk/3qoKwQFjIDVN19PfX8F2D/r9PCMTtLWjYVCFrpeYUzsw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   borsh@0.4.0:
     resolution: {integrity: sha512-aX6qtLya3K0AkT66CmYWCCDr77qsE9arV05OmdFpmat9qu8Pg9J5tBUPDztAW5fNh/d/MyVG/OYziP52Ndzx1g==}
@@ -2262,8 +2279,8 @@ packages:
   cross-fetch@3.1.5:
     resolution: {integrity: sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==}
 
-  cross-spawn@7.0.3:
-    resolution: {integrity: sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==}
+  cross-spawn@7.0.6:
+    resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
   crypto-hash@1.3.0:
@@ -2573,11 +2590,13 @@ packages:
   eslint@7.32.0:
     resolution: {integrity: sha512-VHZ8gX+EDfz+97jGcgyGCyRia/dPOd6Xh9yPv8Bl1+SoaIwD+a/vlrOmGRUyOYu7MwUhc7CxqeaDZU13S4+EpA==}
     engines: {node: ^10.12.0 || >=12.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   eslint@8.37.0:
     resolution: {integrity: sha512-NU3Ps9nI05GUoVMxcZx1J8CNR6xOvUT4jAUMH5+z8lpp3aEdPVCImKw6PWG4PY+Vfkpr+jvMpxs/qoE7wq0sPw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   espree@7.3.1:
@@ -2878,10 +2897,12 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@9.3.4:
     resolution: {integrity: sha512-qaSc49hojMOv1EPM4EuyITjDSgSKI0rthoHnvE81tcOi1SCVndHko7auqxdQ14eiQG2NDBJBE86+2xIrbIvrbA==}
@@ -3028,6 +3049,7 @@ packages:
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
@@ -3498,6 +3520,7 @@ packages:
 
   loupe@2.3.6:
     resolution: {integrity: sha512-RaPMZKiMy8/JruncMU5Bt6na1eftNoo++R4Y+N2FrxkDVTrGvcyzFTsaGif4QTeKESheMGegbhw6iUAq+5A8zA==}
+    deprecated: Please upgrade to 2.3.7 which fixes GHSA-4q6p-r6v2-jvc5
 
   lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
@@ -4254,6 +4277,7 @@ packages:
 
   rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
   rimraf@4.4.0:
@@ -4468,6 +4492,7 @@ packages:
 
   string-similarity@4.0.4:
     resolution: {integrity: sha512-/q/8Q4Bl4ZKAPjj8WerIBJWALKkaPRfrvhfF8k/B23i4nzrlRj2/go1m90In7nG/3XDSbOo0+pu6RvCTM9RGMQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
@@ -4510,6 +4535,7 @@ packages:
   superagent@8.0.9:
     resolution: {integrity: sha512-4C7Bh5pyHTvU33KpZgwrNKh/VQnvgtCSqPRfJAUdmrtSYePVzVg4E4OzsrbkhJj9O7SO6Bnv75K/F8XVZT8YHA==}
     engines: {node: '>=6.4.0 <13 || >=14'}
+    deprecated: Please upgrade to v9.0.0+ as we have fixed a public vulnerability with formidable dependency. Note that v9.0.0+ requires Node.js v14.18.0+. See https://github.com/ladjs/superagent/pull/1800 for insight. This project is supported and maintained by the team at Forward Email @ https://forwardemail.net
 
   superstruct@0.14.2:
     resolution: {integrity: sha512-nPewA6m9mR3d6k7WkZ8N8zpTWfenFH3q9pA2PkuiZxINr9DKB2+40wEQf0ixn8VaGuJ78AB6iWOtStI+/4FKZQ==}
@@ -8064,7 +8090,7 @@ snapshots:
 
   '@switchboard-xyz/switchboard-api@0.2.201(bufferutil@4.0.7)(typescript@4.9.5)(utf-8-validate@5.0.10)':
     dependencies:
-      '@solana/web3.js': 1.78.5(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@solana/web3.js': 1.87.6(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       form-data: 4.0.0
       protobufjs: 6.11.4
       rpc-websockets: 7.5.1
@@ -9165,7 +9191,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  cross-spawn@7.0.3:
+  cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
       shebang-command: 2.0.0
@@ -9419,7 +9445,7 @@ snapshots:
       '@humanwhocodes/config-array': 0.5.0
       ajv: 6.12.6
       chalk: 4.1.2
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       debug: 4.3.4
       doctrine: 3.0.0
       enquirer: 2.3.6
@@ -9468,7 +9494,7 @@ snapshots:
       '@nodelib/fs.walk': 1.2.8
       ajv: 6.12.6
       chalk: 4.1.2
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       debug: 4.3.4
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
@@ -9548,7 +9574,7 @@ snapshots:
 
   execa@4.1.0:
     dependencies:
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       get-stream: 5.2.0
       human-signals: 1.1.1
       is-stream: 2.0.1
@@ -9560,7 +9586,7 @@ snapshots:
 
   execa@5.1.1:
     dependencies:
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       get-stream: 6.0.1
       human-signals: 2.1.0
       is-stream: 2.0.1
@@ -9746,7 +9772,7 @@ snapshots:
 
   foreground-child@2.0.0:
     dependencies:
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       signal-exit: 3.0.7
 
   fork-ts-checker-webpack-plugin@8.0.0(typescript@4.9.5)(webpack@5.76.2):
@@ -10201,7 +10227,7 @@ snapshots:
   istanbul-lib-processinfo@2.0.3:
     dependencies:
       archy: 1.0.0
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       istanbul-lib-coverage: 3.2.0
       p-map: 3.0.0
       rimraf: 3.0.2
