@@ -35,16 +35,6 @@ steps:
 
   - wait: ~
 
-  - label: ":floppy_disk: Downloading snapshot"
-    commands:
-    - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
-    - |
-      docker run -it --rm -v "$$snapshot_dir":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot --max_snapshot_age 20000 --min_download_speed 10 --max_latency 500 | tee ./log.out
-      if grep -q -e 'ERROR.*Could not find a suitable snapshot' ./log.out; then
-        echo "Error to download snapshot. Using RPC to get the snapshot"
-        wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -P "$$snapshot_dir" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
-      fi
-
   - label: ":hammer_and_wrench: :rust: Building solana-snapshot-parser"
     commands:
     - source '/var/lib/buildkite-agent/.cargo/env'
@@ -72,11 +62,24 @@ steps:
 
   - wait: ~
 
-  - label: ":file_folder: Parsing snapshot"
+  - label: ":file_folder:+:floppy_disk: Downloading and parsing snapshot"
     env:
       RUST_BACKTRACE: 1
     commands:
-      - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 20 minutes" && sleep 1200'
+      # Wait between attempts
+      - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 5 minutes" && sleep 300'
+      # Downloading
+      - 'echo "--------- DOWNLOAD ---------"'
+      - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
+      - |
+        # https://github.com/c29r3/solana-snapshot-finder
+        docker run -it --rm -v "$$snapshot_dir":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot --max_snapshot_age 20000 --min_download_speed 30 --max_latency 500 | tee ./log.out
+        if grep -q -e 'ERROR.*Could not find a suitable snapshot' ./log.out; then
+          echo "Error to download snapshot. Using RPC to get the snapshot"
+          wget --retry-connrefused --waitretry=1 --tries=10 --timeout=30 -P "$$snapshot_dir" http://api.mainnet-beta.solana.com/snapshot.tar.bz2
+        fi
+      # Parsing
+      - 'echo "--------- PARSING ---------"'
       - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/target/release/snapshot-parser-tokens-cli .
       - buildkite-agent artifact download --include-retried-jobs filters.json .
       - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
@@ -91,7 +94,7 @@ steps:
     key: 'parsing-snapshot'
     retry:
       automatic:
-        - limit: 2
+        - limit: 4
 
   - wait: ~
 
