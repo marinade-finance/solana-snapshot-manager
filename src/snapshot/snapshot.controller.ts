@@ -32,9 +32,8 @@ export class SnapshotController {
   async getMsolBalanceFromLastSnaphot(
     @Param('pubkey') pubkey: string,
   ): Promise<MsolBalanceDto> {
-    const result = await this.snapshotService.getMsolBalanceFromLastSnaphot(
-      pubkey,
-    );
+    const result =
+      await this.snapshotService.getMsolBalanceFromLastSnaphot(pubkey);
     if (!result) {
       throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
     }
@@ -53,9 +52,8 @@ export class SnapshotController {
   async getVeMNDEBalanceFromLastSnaphot(
     @Param('pubkey') pubkey: string,
   ): Promise<VeMNDEBalanceDto> {
-    const result = await this.snapshotService.getVeMNDEBalanceFromLastSnaphot(
-      pubkey,
-    );
+    const result =
+      await this.snapshotService.getVeMNDEBalanceFromLastSnaphot(pubkey);
     if (!result) {
       throw new HttpException('Holder not found', HttpStatus.NOT_FOUND);
     }
