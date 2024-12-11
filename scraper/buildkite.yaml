@@ -8,7 +8,7 @@ agents:
 steps:
   - label: ":closed_lock_with_key: Concurrency gate lock"
     command: echo "--> Start of concurrency gate"
-    concurrency_group: 'solana-snapshot-manager/parsing2'
+    concurrency_group: 'solana-snapshot-manager/parsing'
     concurrency: 1
 
   - wait: ~
@@ -154,5 +154,5 @@ steps:
 
   - label: ":unlock: Concurrency gate unlock"
     command: echo "End of concurrency gate <--"
-    concurrency_group: 'solana-snapshot-manager/parsing2'
+    concurrency_group: 'solana-snapshot-manager/parsing'
     concurrency: 1
