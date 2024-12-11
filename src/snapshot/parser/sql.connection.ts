@@ -164,17 +164,21 @@ export class SQLConnection extends Connection {
 
   async getProgramAccounts(
     programId: PublicKey,
-    configOrCommitment: GetProgramAccountsConfig & Readonly<{ withContext: true }>
+    configOrCommitment: GetProgramAccountsConfig &
+      Readonly<{ withContext: true }>,
   ): Promise<RpcResponseAndContext<GetProgramAccountsResponse>>;
   async getProgramAccounts(
     programId: PublicKey,
-    configOrCommitment?: GetProgramAccountsConfig | Commitment
+    configOrCommitment?: GetProgramAccountsConfig | Commitment,
   ): Promise<GetProgramAccountsResponse>;
 
   async getProgramAccounts(
     programId: PublicKey,
-    configOrCommitment?: GetProgramAccountsConfig | Commitment
-  ): Promise<RpcResponseAndContext<GetProgramAccountsResponse> | GetProgramAccountsResponse> {
+    configOrCommitment?: GetProgramAccountsConfig | Commitment,
+  ): Promise<
+    | RpcResponseAndContext<GetProgramAccountsResponse>
+    | GetProgramAccountsResponse
+  > {
     this.logDebug(`Getting program account data ${programId.toBase58()}`);
     const { config } = this.extractCommitmentFromConfig(configOrCommitment);
     const rows = this.db
@@ -269,7 +273,7 @@ export class SQLConnection extends Connection {
         });
       }
     }
-    
+
     if (
       configOrCommitment &&
       typeof configOrCommitment === 'object' &&
@@ -281,7 +285,7 @@ export class SQLConnection extends Connection {
         value: result,
       };
     }
-    return result
+    return result;
   }
 
   async getParsedProgramAccounts(
