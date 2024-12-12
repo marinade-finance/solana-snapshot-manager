@@ -9,6 +9,7 @@ import {
   GetParsedProgramAccountsConfig,
   GetProgramAccountsConfig,
   GetProgramAccountsFilter,
+  GetProgramAccountsResponse,
   MemcmpFilter,
   ParsedAccountData,
   PublicKey,
@@ -163,12 +164,20 @@ export class SQLConnection extends Connection {
 
   async getProgramAccounts(
     programId: PublicKey,
+    configOrCommitment: GetProgramAccountsConfig &
+      Readonly<{ withContext: true }>,
+  ): Promise<RpcResponseAndContext<GetProgramAccountsResponse>>;
+  async getProgramAccounts(
+    programId: PublicKey,
+    configOrCommitment?: GetProgramAccountsConfig | Commitment,
+  ): Promise<GetProgramAccountsResponse>;
+
+  async getProgramAccounts(
+    programId: PublicKey,
     configOrCommitment?: GetProgramAccountsConfig | Commitment,
   ): Promise<
-    Array<{
-      pubkey: PublicKey;
-      account: AccountInfo<Buffer>;
-    }>
+    | RpcResponseAndContext<GetProgramAccountsResponse>
+    | GetProgramAccountsResponse
   > {
     this.logDebug(`Getting program account data ${programId.toBase58()}`);
     const { config } = this.extractCommitmentFromConfig(configOrCommitment);
@@ -263,6 +272,18 @@ export class SQLConnection extends Connection {
           account: accountInfo,
         });
       }
+    }
+
+    if (
+      configOrCommitment &&
+      typeof configOrCommitment === 'object' &&
+      'withContext' in configOrCommitment &&
+      configOrCommitment.withContext === true
+    ) {
+      return {
+        context: { slot: this.slot },
+        value: result,
+      };
     }
     return result;
   }

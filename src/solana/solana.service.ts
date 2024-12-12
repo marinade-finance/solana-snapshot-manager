@@ -8,10 +8,13 @@ import { ConfigService } from 'src/config/config.service';
 
 @Injectable()
 export class SolanaService {
-  constructor(private readonly configService: ConfigService) {}
   private readonly MAX_ATTEMPTS = 100;
   private readonly logger = new Logger(SolanaService.name);
-  public readonly connection = new Connection(this.configService.rpcUrl);
+  public readonly connection;
+
+  constructor(private readonly configService: ConfigService) {
+    this.connection = new Connection(this.configService.rpcUrl);
+  }
 
   async getBlockTime(initialSlot: number): Promise<Date> {
     let attempts = 0;
