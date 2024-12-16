@@ -66,11 +66,12 @@ steps:
     env:
       RUST_BACKTRACE: 1
     commands:
+      - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
+      - find "$$snapshot_dir" -maxdepth 1 -type f ! -name 'genesis.tar.bz2' -exec rm -f {} \;
       # Wait between attempts
       - '[[ $$BUILDKITE_RETRY_COUNT -gt 0 ]] && echo "Retry $$BUILDKITE_RETRY_COUNT, waiting for 5 minutes" && sleep 300'
       # Downloading
       - 'echo "--------- DOWNLOAD ---------"'
-      - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
       - |
         # https://github.com/c29r3/solana-snapshot-finder
         docker run -it --rm -v "$$snapshot_dir":/solana/snapshot --user $(id -u):$(id -g) c29r3/solana-snapshot-finder:latest --snapshot_path /solana/snapshot --max_snapshot_age 20000 --min_download_speed 30 --max_latency 500 | tee ./log.out
