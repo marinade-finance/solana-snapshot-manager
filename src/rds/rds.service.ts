@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createPool, createTypeParserPreset, DatabasePool } from 'slonik';
 import { ConfigService } from 'src/config/config.service';
+import fs from 'fs'
 
 export const batches = function* <T>(items: T[], size: number): Generator<T[]> {
   if (size <= 0) {
@@ -27,7 +28,15 @@ export const poolFactory = {
       };
     }
 
+    const sslRootCert = configService.getPgSslRootCert()
+    const ssl = sslRootCert ? {
+      rejectUnauthorized: true,
+      requestCert: true,
+      ca: [fs.readFileSync(sslRootCert).toString()],
+    } : undefined
+
     return await createPool(configService.postgresUrl, {
+      ssl,
       typeParsers: [
         ...createTypeParserPreset(),
         {
