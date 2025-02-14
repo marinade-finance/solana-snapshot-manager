@@ -65,7 +65,9 @@ steps:
   - label: ":file_folder:+:floppy_disk: Downloading and parsing snapshot"
     env:
       RUST_BACKTRACE: 1
+      PG_SSLROOTCERT: './eu-west-1-bundle.pem'
     commands:
+      - curl https://truststore.pki.rds.amazonaws.com/eu-west-1/eu-west-1-bundle.pem -o ./eu-west-1-bundle.pem
       - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
       - find "$$snapshot_dir" -maxdepth 1 -type f ! -name 'genesis.tar.bz2' -exec rm -f {} \;
       # Wait between attempts
