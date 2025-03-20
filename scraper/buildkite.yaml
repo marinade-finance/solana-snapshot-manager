@@ -30,7 +30,7 @@ steps:
     - mkdir -p "$$DATA_DIR"
     - snapshot_dir=$(mktemp --directory -p "$$DATA_DIR" "snapshot-$(date +%s)-XXXXXX")
     - chmod -R 777 "$$snapshot_dir"
-    - buildkite-agent meta-data set snapshot_dir "$$snapshot_dir"
+    - buildkite-agent meta-data set --redacted-vars "" snapshot_dir "$$snapshot_dir"
     key: prepare-snapshot-directory
 
   - wait: ~
