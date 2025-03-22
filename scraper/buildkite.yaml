@@ -124,7 +124,6 @@ steps:
         fi
       - slot=${buildkite-agent meta-data get slot || echo "unknown"}
       - |
-        epoch=$(buildkite-agent meta-data get epoch)
         curl ${SLACK_API} -X POST -H 'Content-Type: application/json; charset=utf-8' \
           -H "Authorization: Bearer $$SLACK_BEARER_TOKEN" -d '{
             "channel": "feed-pipeline-etl",
