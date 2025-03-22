@@ -1,9 +1,10 @@
+agents:
+  queue: "snapshots"
+
 env:
   DATA_DIR: /mnt/storage-1/solana-snapshot-manager
   SNAPSHOT_URL: http://api.mainnet-beta.solana.com/snapshot.tar.bz2
-
-agents:
-  queue: "snapshots"
+  SLACK_API: https://slack.com/api/chat.postMessage
 
 steps:
   - label: ":closed_lock_with_key: Concurrency gate lock"
