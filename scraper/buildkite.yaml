@@ -87,6 +87,7 @@ steps:
       # - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
       # - slot=$(tar -tf "$$snapshot_dir"/snapshot-*tar.zst | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
       # - buildkite-agent meta-data set slot "$$slot"
+      - buildkite-agent meta-data set slot "22" # TODO DELETEME
       # - chmod +x ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli
       # - ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli --ledger-path "$$snapshot_dir" --output-sqlite "$${snapshot_dir}/snapshot.db" --filters './filters.json' --sqlite-tx-bulk 2000
       # - ./index-db.bash "$${snapshot_dir}/snapshot.db"
