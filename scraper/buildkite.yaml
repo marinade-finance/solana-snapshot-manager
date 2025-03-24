@@ -1,9 +1,10 @@
+agents:
+  queue: "snapshots"
+
 env:
   DATA_DIR: /mnt/storage-1/solana-snapshot-manager
   SNAPSHOT_URL: http://api.mainnet-beta.solana.com/snapshot.tar.bz2
-
-agents:
-  queue: "snapshots"
+  SLACK_API: https://slack.com/api/chat.postMessage
 
 steps:
   - label: ":closed_lock_with_key: Concurrency gate lock"
@@ -91,7 +92,6 @@ steps:
       - ./index-db.bash "$${snapshot_dir}/snapshot.db"
       - pnpm install --frozen-lockfile
       - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot" --psql-output
-      - pnpm run cli -- record-msol-votes
     key: 'parsing-snapshot'
     retry:
       automatic:
@@ -99,50 +99,48 @@ steps:
 
   - wait: ~
 
-  - label: ":black_nib: Find Discord webhook"
+  - label: ":file_folder:+:floppy_disk: Recording mSOL votes"
     commands:
-    - |
-      discord_webhook=$(buildkite-agent meta-data get discord_webhook) || true
-      if [[ -z "$$discord_webhook" ]]; then
-        # env defined by job definition
-        discord_webhook="${DISCORD_WEBHOOK}"
-      fi
-      if [[ -z "$$discord_webhook" ]]; then
-        # env defined by buildkite environment
-        discord_webhook="$${DISCORD_WEBHOOK_SOLANA_SNAPSHOT_MANAGER}"
-      fi
-      buildkite-agent meta-data set discord_webhook "$$discord_webhook"
-    key: discord-webhook
+      - pnpm install --frozen-lockfile
+      - pnpm run cli -- record-msol-votes
+    key: 'record-msol-votes'
+    retry:
+      automatic:
+        - limit: 4
     depends_on: parsing-snapshot
     allow_dependency_failure: true
-  
+
   - wait: ~
 
-  - label: ":loudspeaker: Notification"
+  - label: ":mega: Notification"
     commands:
-    - build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")
-    - |
-      if [[ "$$build_result" =~ "failed" ]]; then
-        notification_result="FAILED"
-        notification_color="15158110"
-      else
-        notification_result="SUCCEEDED"
-        notification_color="16121807"
-      fi
-    - slot=${buildkite-agent meta-data get slot || echo "unknown"}
-    - |
-      curl "$(buildkite-agent meta-data get discord_webhook)" \
-        -H "Content-Type: application/json" -d '{
-        "embeds": [
-          {
-            "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
-            "url": "'"$$BUILDKITE_BUILD_URL"'",
-            "color": "'"$$notification_color"'"
-          }
-        ]
-      }'
-    depends_on: discord-webhook
+      - build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")
+      - |
+        if [[ "$$build_result" =~ "failed" ]]; then
+          notification_result="FAILED"
+          notification_color="#DC3545"
+        else
+          notification_result="SUCCEEDED"
+          notification_color="#00CC00"
+        fi
+      - slot=${buildkite-agent meta-data get slot || echo "unknown"}
+      - |
+        curl ${SLACK_API} -X POST -H 'Content-Type: application/json; charset=utf-8' \
+          -H "Authorization: Bearer $$SLACK_BEARER_TOKEN" -d '{
+            "channel": "feed-pipeline-etl",
+            "attachments": [
+              {
+                "color": "'"$$notification_color"'",
+                "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
+                "title_link": "'"$$BUILDKITE_BUILD_URL"'",
+                "footer": "<'"$$BUILDKITE_BUILD_URL"'|View in Buildkite>"
+              }
+            ]
+        }'
+    key: slack-webhook
+    depends_on: parsing-snapshot
     allow_dependency_failure: true
+    if: "build.env('NOTIFY_FEED') == 'true'"
 
   - wait: ~
 
