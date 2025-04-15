@@ -30,7 +30,7 @@
     "@coral-xyz/anchor": "0.28.1-beta.1",
     "@marinade.finance/directed-stake-sdk": "^0.1.0",
     "@nestjs/cache-manager": "^1.0.0",
-    "@nestjs/common": "^11.0.12",
+    "@nestjs/common": "^11.0.16",
     "@nestjs/core": "^10.4.15",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/swagger": "^8.1.0",
