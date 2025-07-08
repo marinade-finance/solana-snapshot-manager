@@ -130,6 +130,8 @@ steps:
             "channel": "feed-pipeline-etl",
             "attachments": [
               {
+                "author_name": "Solana Snapshot Manager",
+                "author_link": "https://github.com/marinade-finance/solana-snapshot-manager",
                 "color": "'"$$notification_color"'",
                 "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
                 "title_link": "'"$$BUILDKITE_BUILD_URL"'",
