@@ -110,13 +110,13 @@ export class SQLConnection extends Connection {
           `,
       )
       .all(...publicKeysBase58) as {
-      pubkey: string;
-      owner: string;
-      executable: boolean;
-      lamports: string;
-      rent_epoch: string | null;
-      account: Buffer;
-    }[];
+        pubkey: string;
+        owner: string;
+        executable: boolean;
+        lamports: string;
+        rent_epoch: string | null;
+        account: Buffer;
+      }[];
 
     const queriedAccountInfos: Map<string, AccountInfo<Buffer>> = new Map();
     if (rows) {
@@ -196,13 +196,13 @@ export class SQLConnection extends Connection {
         `,
       )
       .all(programId.toBase58()) as {
-      pubkey: string;
-      owner: string;
-      executable: boolean;
-      lamports: string;
-      rent_epoch: string | null;
-      account: Buffer;
-    }[];
+        pubkey: string;
+        owner: string;
+        executable: boolean;
+        lamports: string;
+        rent_epoch: string | null;
+        account: Buffer;
+      }[];
 
     let dataSizeFilter: DataSizeFilter | undefined = undefined;
     const memCmpFilters: { offset: number; bytes: Buffer }[] = [];
@@ -215,7 +215,7 @@ export class SQLConnection extends Connection {
             if (filter.dataSize !== dataSizeFilter.dataSize) {
               this.logWarn(
                 `When searching for program id ${programId} data, two size filters with different values provided, ` +
-                  `using first one data length ${dataSizeFilter.dataSize}`,
+                `using first one data length ${dataSizeFilter.dataSize}`,
               );
             }
           }
@@ -246,7 +246,7 @@ export class SQLConnection extends Connection {
           // API: buffer1.compare( targetBuffer, targetStart, targetEnd, sourceStart, sourceEnd )
           if (
             row.account.compare(
-              memCmpFilter.bytes,
+              new Uint8Array(memCmpFilter.bytes),
               0,
               memCmpFilter.bytes.length,
               memCmpFilter.offset,
