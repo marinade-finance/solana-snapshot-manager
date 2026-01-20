@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { RedocModule, RedocOptions } from 'nestjs-redoc';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from './logger';
 import { IpLoggerInterceptor } from './interceptors/logging.interceptor';
@@ -18,19 +17,12 @@ async function bootstrap() {
     .setDescription(
       'This API serves data previsouly from previously processed snapshots.',
     )
+    .setVersion('1.0')
+    .setTermsOfService('/docs/swagger.json')
     .build();
   const document = SwaggerModule.createDocument(app, options);
-  const redocOptions: RedocOptions = {
-    title: 'Marinade Snapshot API',
-    logo: {
-      url: 'https://marinade.finance/marinade-logo-black.svg',
-    },
-    sortPropsAlphabetically: true,
-    hideDownloadButton: false,
-    hideHostname: false,
-    expandResponses: '200',
-  };
-  await RedocModule.setup('/docs', app, document, redocOptions);
+  document.openapi = '3.1.0';
+  SwaggerModule.setup('/docs', app, document);
   await app.listen(3000);
 }
 bootstrap();
