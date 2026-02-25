@@ -25,6 +25,33 @@ steps:
 
   - wait: ~
 
+  - label: ":hourglass: Wait for solana-snapshot-parser pipeline"
+    commands:
+    - |
+      set -e
+      MAX_WAIT=$${PARSER_WAIT_TIMEOUT:-10800} # Default to 3 hours if not set
+      POLL_INTERVAL=180 # Check every 3 minutes
+      ELAPSED=0
+      echo "Checking if solana-snapshot-parser pipeline has running builds..."
+      while true; do
+        running=$$(curl -sS --fail -H "Authorization: Bearer $$BUILDKITE_API_TOKEN" \
+          "https://api.buildkite.com/v2/organizations/marinade-finance/pipelines/solana-snapshot-parser/builds?state[]=running&state[]=scheduled" \
+          | jq 'length')
+        if [ "$$running" -eq 0 ]; then
+          echo "No running/scheduled builds on solana-snapshot-parser, proceeding."
+          break
+        fi
+        if [ "$$ELAPSED" -ge "$$MAX_WAIT" ]; then
+          echo "Timed out after $${ELAPSED}s waiting for solana-snapshot-parser to finish ($$running build(s) still active)"
+          exit 1
+        fi
+        echo "$$running build(s) still active, waiting $${POLL_INTERVAL}s... (elapsed: $${ELAPSED}s / max: $${MAX_WAIT}s)"
+        sleep "$$POLL_INTERVAL"
+        ELAPSED=$$((ELAPSED + POLL_INTERVAL))
+      done
+
+  - wait: ~
+
   - label: ":file_folder: Prepare snapshot directory"
     commands:
     - set -x
@@ -48,6 +75,8 @@ steps:
       - solana-snapshot-parser/scripts/fetch-genesis.bash
 
   - label: ":cloud: :arrow_right: :floppy_disk: Fetch genesis"
+    env:
+      RPC_URL: "$$RPC_URL"
     commands:
     - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
     - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/scripts/fetch-genesis.bash .
