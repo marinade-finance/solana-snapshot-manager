@@ -14,14 +14,33 @@ steps:
 
   - wait: ~
 
-  - label: ":sleeping: Randomization the startup time"
+  - label: ":memo: Annotate retry parameters"
+    key: annotate-retry-parameters
     commands:
     - |
-      set -x -e
       if [ x"$$SLEEP_TIME" == "x" ]; then
         SLEEP_TIME=$$((RANDOM % 14400))
       fi
-      sleep $$SLEEP_TIME
+      buildkite-agent meta-data set --redacted-vars='' sleep_time "$$SLEEP_TIME"
+    - sleep_time=$(buildkite-agent meta-data get sleep_time)
+    - |
+      cat <<- EOF | buildkite-agent annotate --priority 6 --style info --context "general-info"
+      ### Retry environment variables
+      If you need to retry the build, use the following parameters:
+
+      \`\`\`
+      SLEEP_TIME=$$sleep_time
+      NOTIFY_FEED=$${NOTIFY_FEED:-false}
+      \`\`\`
+      EOF
+
+  - wait: ~
+
+  - label: ":sleeping: Randomize the startup time"
+    commands:
+    - set -x -e
+    - sleep_time=$(buildkite-agent meta-data get sleep_time)
+    - sleep "$$sleep_time"
 
   - wait: ~
 
@@ -84,7 +103,10 @@ steps:
     depends_on: solana-snapshot-parser
 
   - label: ":handball: :typescript: Generate filters.json"
+    env:
+      PG_SSLROOTCERT: './eu-west-1-bundle.pem'
     commands:
+    - curl -sS --fail --location https://truststore.pki.rds.amazonaws.com/eu-west-1/eu-west-1-bundle.pem -o ./eu-west-1-bundle.pem
     - pnpm install --frozen-lockfile
     - pnpm run cli -- filters --json-output ./filters.json
     artifact_paths:
@@ -97,7 +119,7 @@ steps:
       RUST_BACKTRACE: 1
       PG_SSLROOTCERT: './eu-west-1-bundle.pem'
     commands:
-      - curl https://truststore.pki.rds.amazonaws.com/eu-west-1/eu-west-1-bundle.pem -o ./eu-west-1-bundle.pem
+      - curl -sS --fail --location https://truststore.pki.rds.amazonaws.com/eu-west-1/eu-west-1-bundle.pem -o ./eu-west-1-bundle.pem
       - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
       - find "$$snapshot_dir" -maxdepth 1 -type f ! -name 'genesis.tar.bz2' -exec rm -f {} \;
       # Wait between attempts
@@ -129,7 +151,10 @@ steps:
   - wait: ~
 
   - label: ":file_folder:+:floppy_disk: Recording mSOL votes"
+    env:
+      PG_SSLROOTCERT: './eu-west-1-bundle.pem'
     commands:
+      - curl -sS --fail --location https://truststore.pki.rds.amazonaws.com/eu-west-1/eu-west-1-bundle.pem -o ./eu-west-1-bundle.pem
       - pnpm install --frozen-lockfile
       - pnpm run cli -- record-msol-votes
     key: 'record-msol-votes'
@@ -143,14 +168,20 @@ steps:
 
   - label: ":mega: Notification"
     commands:
-      - build_result=$(buildkite-agent step get "outcome" --step "parsing-snapshot")
+      - parsing_outcome=$(buildkite-agent step get "outcome" --step "parsing-snapshot" || echo "unknown")
+      - record_outcome=$(buildkite-agent step get "outcome" --step "record-msol-votes" || echo "unknown")
       - |
-        if [[ "$$build_result" =~ "failed" ]]; then
+        failed_steps=""
+        if [[ "$$parsing_outcome" =~ "failed" ]]; then failed_steps="$$failed_steps parsing-snapshot($$parsing_outcome)"; fi
+        if [[ "$$record_outcome" =~ "failed" ]]; then failed_steps="$$failed_steps record-msol-votes($$record_outcome)"; fi
+        if [[ -n "$$failed_steps" ]]; then
           notification_result="FAILED"
           notification_color="#DC3545"
+          notification_text="Failed steps:$$failed_steps"
         else
           notification_result="SUCCEEDED"
           notification_color="#00CC00"
+          notification_text="parsing-snapshot: $$parsing_outcome, record-msol-votes: $$record_outcome"
         fi
       - slot=$(buildkite-agent meta-data get slot || echo "unknown")
       - |
@@ -164,12 +195,15 @@ steps:
                 "color": "'"$$notification_color"'",
                 "title": "Slot '"$$slot"' '"$$notification_result"' to be parsed",
                 "title_link": "'"$$BUILDKITE_BUILD_URL"'",
+                "text": "'"$$notification_text"'",
                 "footer": "<'"$$BUILDKITE_BUILD_URL"'|View in Buildkite>"
               }
             ]
         }'
     key: slack-webhook
-    depends_on: parsing-snapshot
+    depends_on:
+      - parsing-snapshot
+      - record-msol-votes
     allow_dependency_failure: true
     if: "build.env('NOTIFY_FEED') == 'true'"
 
