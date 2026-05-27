@@ -24,7 +24,7 @@ export class ConfigService {
   // Use 'DISABLE_TIMEOUT' to disable the timeout. (Default for PSQL driver: 60000)
   postgresStatementTimeout = getEnvVarOptional('POSTGRES_STATEMENT_TIMEOUT');
 
-  getPgSslRootCert (): string | undefined {
+  getPgSslRootCert(): string | undefined {
     return process.env['PG_SSLROOTCERT'];
   }
 }

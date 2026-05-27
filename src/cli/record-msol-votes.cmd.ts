@@ -6,7 +6,6 @@ import { VotesService } from 'src/votes/votes.service';
   description: 'Stores mSol votes to DB',
 })
 export class RecordMSolVotesCommand extends CommandRunner {
-
   constructor(private readonly votesService: VotesService) {
     super();
   }
