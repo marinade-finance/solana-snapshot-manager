@@ -101,6 +101,9 @@ steps:
     - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/scripts/fetch-genesis.bash .
     - bash ./solana-snapshot-parser/scripts/fetch-genesis.bash "$$snapshot_dir"
     depends_on: solana-snapshot-parser
+    retry:
+      automatic:
+        - limit: 2
 
   - label: ":handball: :typescript: Generate filters.json"
     env:
