@@ -30,6 +30,42 @@ export class VeMNDEBalanceDto {
   createdAt: string;
 }
 
+export class MsolBalanceHistoryItemDto {
+  @IsNumber()
+  @ApiProperty()
+  amount: string;
+
+  @IsNumber()
+  @ApiProperty()
+  slot: number;
+
+  @IsDateString()
+  @ApiProperty()
+  createdAt: string;
+
+  @IsDateString()
+  @ApiProperty()
+  snapshotCreatedAt: string;
+}
+
+export class VeMNDEBalanceHistoryItemDto {
+  @IsNumber()
+  @ApiProperty()
+  amount: string;
+
+  @IsNumber()
+  @ApiProperty()
+  slot: number;
+
+  @IsDateString()
+  @ApiProperty()
+  createdAt: string;
+
+  @IsDateString()
+  @ApiProperty()
+  snapshotCreatedAt: string;
+}
+
 export class NativeStakeBalanceDto {
   @IsNumber()
   @ApiProperty()

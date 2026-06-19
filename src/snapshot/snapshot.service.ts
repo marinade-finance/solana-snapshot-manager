@@ -3,8 +3,10 @@ import { sql } from 'slonik';
 import { batches, RdsService } from 'src/rds/rds.service';
 import {
   MsolBalanceDto,
+  MsolBalanceHistoryItemDto,
   NativeStakeBalanceDto,
   VeMNDEBalanceDto,
+  VeMNDEBalanceHistoryItemDto,
 } from './snapshot.dto';
 import { SolanaService } from 'src/solana/solana.service';
 
@@ -130,6 +132,85 @@ export class SnapshotService {
       slot: result.slot,
       createdAt: result.created_at,
     };
+  }
+
+  // Resolves an optional [startDate, endDate] range to a concrete window,
+  // defaulting to the last month when bounds are missing.
+  private resolveHistoryRange(
+    startDate?: string,
+    endDate?: string,
+  ): { startDate: string; endDate: string } {
+    const end = endDate ? new Date(endDate) : new Date();
+    let start: Date;
+    if (startDate) {
+      start = new Date(startDate);
+    } else {
+      start = new Date(end);
+      start.setMonth(start.getMonth() - 1);
+    }
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }
+
+  async getMsolBalanceHistory(
+    owner: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<MsolBalanceHistoryItemDto[]> {
+    const range = this.resolveHistoryRange(startDate, endDate);
+    this.logger.log(
+      `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
+    );
+    const result = await this.rdsService.pool.any(sql.unsafe`
+            SELECT msol_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
+            FROM msol_holders
+            INNER JOIN snapshots ON snapshots.snapshot_id = msol_holders.snapshot_id
+            WHERE snapshots.created_at >= ${range.startDate}
+              AND snapshots.created_at <= ${range.endDate}
+              AND msol_holders.owner = ${owner}
+            ORDER BY snapshots.created_at ASC
+        `);
+
+    this.logger.log('Msol holder history fetched', {
+      owner,
+      count: result.length,
+    });
+    return result.map((row) => ({
+      amount: row.amount,
+      slot: row.slot,
+      createdAt: row.created_at,
+      snapshotCreatedAt: row.blocktime,
+    }));
+  }
+
+  async getVeMNDEBalanceHistory(
+    owner: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<VeMNDEBalanceHistoryItemDto[]> {
+    const range = this.resolveHistoryRange(startDate, endDate);
+    this.logger.log(
+      `Fetching getVeMNDEBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
+    );
+    const result = await this.rdsService.pool.any(sql.unsafe`
+            SELECT vemnde_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
+            FROM vemnde_holders
+            INNER JOIN snapshots ON snapshots.snapshot_id = vemnde_holders.snapshot_id
+            WHERE snapshots.created_at >= ${range.startDate}
+              AND snapshots.created_at <= ${range.endDate}
+              AND vemnde_holders.owner = ${owner}
+            ORDER BY snapshots.created_at ASC
+        `);
+
+    this.logger.log('VeMNDE holder history fetched', {
+      owner,
+      count: result.length,
+    });
+    return result.map((row) => ({
+      amount: row.amount,
+      slot: row.slot,
+      createdAt: row.created_at,
+      snapshotCreatedAt: row.blocktime,
+    }));
   }
 
   async createSnapshot(slot: number): Promise<number> {
