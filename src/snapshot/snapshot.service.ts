@@ -164,10 +164,10 @@ export class SnapshotService {
             SELECT msol_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
             FROM msol_holders
             INNER JOIN snapshots ON snapshots.snapshot_id = msol_holders.snapshot_id
-            WHERE snapshots.created_at >= ${range.startDate}
-              AND snapshots.created_at <= ${range.endDate}
+            WHERE snapshots.blocktime >= ${range.startDate}
+              AND snapshots.blocktime <= ${range.endDate}
               AND msol_holders.owner = ${owner}
-            ORDER BY snapshots.created_at ASC
+            ORDER BY snapshots.blocktime ASC
         `);
 
     this.logger.log('Msol holder history fetched', {
@@ -195,10 +195,10 @@ export class SnapshotService {
             SELECT vemnde_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
             FROM vemnde_holders
             INNER JOIN snapshots ON snapshots.snapshot_id = vemnde_holders.snapshot_id
-            WHERE snapshots.created_at >= ${range.startDate}
-              AND snapshots.created_at <= ${range.endDate}
+            WHERE snapshots.blocktime >= ${range.startDate}
+              AND snapshots.blocktime <= ${range.endDate}
               AND vemnde_holders.owner = ${owner}
-            ORDER BY snapshots.created_at ASC
+            ORDER BY snapshots.blocktime ASC
         `);
 
     this.logger.log('VeMNDE holder history fetched', {
