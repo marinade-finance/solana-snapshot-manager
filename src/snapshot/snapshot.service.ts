@@ -163,11 +163,11 @@ export class SnapshotService {
     const result = await this.rdsService.pool.any(sql.unsafe`
             SELECT msol_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
             FROM msol_holders
-            INNER JOIN snapshots ON snapshots.snapshot_id = msol_holders.snapshot_id
+            INNER JOIN snapshots USING (snapshot_id)
             WHERE snapshots.blocktime >= ${range.startDate}
               AND snapshots.blocktime <= ${range.endDate}
               AND msol_holders.owner = ${owner}
-            ORDER BY snapshots.blocktime ASC
+            ORDER BY snapshots.blocktime
         `);
 
     this.logger.log('Msol holder history fetched', {
@@ -194,11 +194,11 @@ export class SnapshotService {
     const result = await this.rdsService.pool.any(sql.unsafe`
             SELECT vemnde_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
             FROM vemnde_holders
-            INNER JOIN snapshots ON snapshots.snapshot_id = vemnde_holders.snapshot_id
+            INNER JOIN snapshots USING (snapshot_id)
             WHERE snapshots.blocktime >= ${range.startDate}
               AND snapshots.blocktime <= ${range.endDate}
               AND vemnde_holders.owner = ${owner}
-            ORDER BY snapshots.blocktime ASC
+            ORDER BY snapshots.blocktime
         `);
 
     this.logger.log('VeMNDE holder history fetched', {
