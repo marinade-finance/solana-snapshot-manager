@@ -1,5 +1,5 @@
 import { IsArray, IsDateString, IsNumber, IsOptional } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsValidDate } from 'src/decorators/snapshots-date.decorator';
 
 export class MsolBalanceDto {
@@ -28,6 +28,42 @@ export class VeMNDEBalanceDto {
   @IsDateString()
   @ApiProperty()
   createdAt: string;
+}
+
+export class MsolBalanceHistoryItemDto {
+  @IsNumber()
+  @ApiProperty()
+  amount: string;
+
+  @IsNumber()
+  @ApiProperty()
+  slot: number;
+
+  @IsDateString()
+  @ApiProperty()
+  createdAt: string;
+
+  @IsDateString()
+  @ApiProperty()
+  snapshotCreatedAt: string;
+}
+
+export class VeMNDEBalanceHistoryItemDto {
+  @IsNumber()
+  @ApiProperty()
+  amount: string;
+
+  @IsNumber()
+  @ApiProperty()
+  slot: number;
+
+  @IsDateString()
+  @ApiProperty()
+  createdAt: string;
+
+  @IsDateString()
+  @ApiProperty()
+  snapshotCreatedAt: string;
 }
 
 export class NativeStakeBalanceDto {
@@ -84,10 +120,19 @@ export class StakeBalanceDto {
 }
 
 export class SnapshotsIntervalDto {
+  @ApiPropertyOptional({
+    description:
+      'Inclusive start of the range (YYYY-MM-DD). Defaults to one month before endDate.',
+    example: '2026-05-01',
+  })
   @IsOptional()
   @IsValidDate()
   startDate: string;
 
+  @ApiPropertyOptional({
+    description: 'Inclusive end of the range (YYYY-MM-DD). Defaults to now.',
+    example: '2026-06-22',
+  })
   @IsOptional()
   @IsValidDate()
   endDate: string;

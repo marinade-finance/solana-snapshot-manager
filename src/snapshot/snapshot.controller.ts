@@ -4,15 +4,23 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { MsolBalanceDto, VeMNDEBalanceDto } from './snapshot.dto';
+import {
+  MsolBalanceDto,
+  MsolBalanceHistoryItemDto,
+  SnapshotsIntervalDto,
+  VeMNDEBalanceDto,
+  VeMNDEBalanceHistoryItemDto,
+} from './snapshot.dto';
 import { SnapshotService } from './snapshot.service';
 import { StakersService } from 'src/stakers/stakers.service';
+import { HttpDateCacheInterceptor } from 'src/interceptors/date.interceptor';
 
-@Controller('v1/snapshot/latest')
+@Controller('v1/snapshot')
 @ApiTags('Snapshot')
 @UseInterceptors(CacheInterceptor)
 export class SnapshotController {
@@ -21,7 +29,7 @@ export class SnapshotController {
     private readonly stakersService: StakersService,
   ) {}
 
-  @Get('/msol/:pubkey')
+  @Get('/latest/msol/:pubkey')
   @ApiOperation({ summary: 'Fetch mSOL balance for a pubkey' })
   @ApiResponse({
     status: 200,
@@ -41,7 +49,7 @@ export class SnapshotController {
     return result;
   }
 
-  @Get('/vemnde/:pubkey')
+  @Get('/latest/vemnde/:pubkey')
   @ApiOperation({ summary: 'Fetch VeMNDE balance for a pubkey' })
   @ApiResponse({
     status: 200,
@@ -59,5 +67,73 @@ export class SnapshotController {
     }
 
     return result;
+  }
+
+  @Get('/history/msol/:pubkey')
+  @ApiOperation({
+    summary:
+      'Fetch mSOL balance history for a pubkey over a date interval (defaults to the last month)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The records were successfully fetched.',
+    type: [MsolBalanceHistoryItemDto],
+  })
+  @UseInterceptors(HttpDateCacheInterceptor)
+  @CacheTTL(60e3)
+  async getMsolBalanceHistory(
+    @Param('pubkey') pubkey: string,
+    @Query() query: SnapshotsIntervalDto,
+  ): Promise<MsolBalanceHistoryItemDto[]> {
+    if (
+      query.startDate &&
+      query.endDate &&
+      Date.parse(query.startDate) > Date.parse(query.endDate)
+    ) {
+      throw new HttpException(
+        'startDate is later than endDate',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return this.snapshotService.getMsolBalanceHistory(
+      pubkey,
+      query.startDate,
+      query.endDate,
+    );
+  }
+
+  @Get('/history/vemnde/:pubkey')
+  @ApiOperation({
+    summary:
+      'Fetch VeMNDE balance history for a pubkey over a date interval (defaults to the last month)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The records were successfully fetched.',
+    type: [VeMNDEBalanceHistoryItemDto],
+  })
+  @UseInterceptors(HttpDateCacheInterceptor)
+  @CacheTTL(60e3)
+  async getVeMNDEBalanceHistory(
+    @Param('pubkey') pubkey: string,
+    @Query() query: SnapshotsIntervalDto,
+  ): Promise<VeMNDEBalanceHistoryItemDto[]> {
+    if (
+      query.startDate &&
+      query.endDate &&
+      Date.parse(query.startDate) > Date.parse(query.endDate)
+    ) {
+      throw new HttpException(
+        'startDate is later than endDate',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return this.snapshotService.getVeMNDEBalanceHistory(
+      pubkey,
+      query.startDate,
+      query.endDate,
+    );
   }
 }
