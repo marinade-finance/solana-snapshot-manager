@@ -160,13 +160,32 @@ export class SnapshotService {
     this.logger.log(
       `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
     );
+    // The parser only stores rows for wallets that hold mSOL at snapshot
+    // time, so a wallet whose balance drops to 0 (sold, or moved into
+    // protocol custody, e.g. lending collateral) silently disappears from
+    // subsequent snapshots. Consumers carrying the last observation forward
+    // then render the stale balance indefinitely. Gap-fill at read time:
+    // for every snapshot in range taken since the wallet first appeared,
+    // return the stored amount, or an explicit 0 when the wallet is absent.
+    // Wallets that never held mSOL still return no rows (first_seen is
+    // NULL, which filters out every snapshot).
     const result = await this.rdsService.pool.any(sql.unsafe`
-            SELECT msol_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
-            FROM msol_holders
-            INNER JOIN snapshots USING (snapshot_id)
+            WITH first_seen AS (
+                SELECT MIN(snapshots.blocktime) AS blocktime
+                FROM msol_holders
+                INNER JOIN snapshots USING (snapshot_id)
+                WHERE msol_holders.owner = ${owner}
+            )
+            SELECT COALESCE(msol_holders.amount, 0) AS amount,
+                   snapshots.slot, snapshots.created_at, snapshots.blocktime
+            FROM snapshots
+            CROSS JOIN first_seen
+            LEFT JOIN msol_holders
+                   ON msol_holders.snapshot_id = snapshots.snapshot_id
+                  AND msol_holders.owner = ${owner}
             WHERE snapshots.blocktime >= ${range.startDate}
               AND snapshots.blocktime <= ${range.endDate}
-              AND msol_holders.owner = ${owner}
+              AND snapshots.blocktime >= first_seen.blocktime
             ORDER BY snapshots.blocktime
         `);
 
@@ -191,13 +210,25 @@ export class SnapshotService {
     this.logger.log(
       `Fetching getVeMNDEBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
     );
+    // Same gap-fill semantics as getMsolBalanceHistory: absence from an
+    // existing snapshot after the wallet's first appearance is an explicit 0.
     const result = await this.rdsService.pool.any(sql.unsafe`
-            SELECT vemnde_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
-            FROM vemnde_holders
-            INNER JOIN snapshots USING (snapshot_id)
+            WITH first_seen AS (
+                SELECT MIN(snapshots.blocktime) AS blocktime
+                FROM vemnde_holders
+                INNER JOIN snapshots USING (snapshot_id)
+                WHERE vemnde_holders.owner = ${owner}
+            )
+            SELECT COALESCE(vemnde_holders.amount, 0) AS amount,
+                   snapshots.slot, snapshots.created_at, snapshots.blocktime
+            FROM snapshots
+            CROSS JOIN first_seen
+            LEFT JOIN vemnde_holders
+                   ON vemnde_holders.snapshot_id = snapshots.snapshot_id
+                  AND vemnde_holders.owner = ${owner}
             WHERE snapshots.blocktime >= ${range.startDate}
               AND snapshots.blocktime <= ${range.endDate}
-              AND vemnde_holders.owner = ${owner}
+              AND snapshots.blocktime >= first_seen.blocktime
             ORDER BY snapshots.blocktime
         `);
 
