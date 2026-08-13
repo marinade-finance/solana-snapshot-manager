@@ -88,6 +88,7 @@ steps:
     - git clone --depth 1 -b $BUILDKITE_BRANCH git@github.com:marinade-finance/solana-snapshot-parser.git
     - cd solana-snapshot-parser
     - cargo build --release --bin snapshot-parser-tokens-cli
+    - '[ "$${CARGO_TARGET_DIR:-target}" = target ] || install -D -t target/release "$$CARGO_TARGET_DIR"/release/snapshot-parser-tokens-cli'
     key: solana-snapshot-parser
     artifact_paths:
       - solana-snapshot-parser/target/release/snapshot-parser-tokens-cli
