@@ -62,6 +62,20 @@ export class ParserService {
       throw new Error('Failed to get VSR Registrar Data!');
     }
 
+    // Serialized to filters.json and consumed by snapshot-parser-tokens-cli
+    // (marinade-finance/solana-snapshot-parser), which the scraper pipeline
+    // builds from the branch of the same name as this repo's branch - see the
+    // "Building solana-snapshot-parser" step in scraper/buildkite.yaml.
+    //
+    // The cli deserializes filters.json into a plain serde struct, so every
+    // key it declares without #[serde(default)] is REQUIRED: dropping a key
+    // here makes its Filters::load fail with `missing field ...` before the
+    // bank is loaded, aborting the whole daily run (no snapshot.db, hence no
+    // rows in snapshots/msol_holders/vemnde_holders/native_stake_accounts).
+    //
+    // Adding a key is always safe; REMOVING one requires the matching parser
+    // change (field made optional) to be on the parser's master branch first.
+    // The `account_owners` key removed here is subject to that ordering.
     return {
       account_mints: [MSOL_MINT].join(','),
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
