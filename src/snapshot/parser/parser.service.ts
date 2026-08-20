@@ -62,8 +62,6 @@ export class ParserService {
       throw new Error('Failed to get VSR Registrar Data!');
     }
 
-    // filters.json keys are required serde fields in the parser, built from the
-    // same-named branch: removing one needs the parser change merged first.
     return {
       account_mints: [MSOL_MINT].join(','),
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
