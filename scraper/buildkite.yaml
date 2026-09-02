@@ -85,7 +85,7 @@ steps:
   - label: ":hammer_and_wrench: :rust: Building solana-snapshot-parser"
     commands:
     - source '/var/lib/buildkite-agent/.cargo/env'
-    - git clone --depth 1 -b $BUILDKITE_BRANCH git@github.com:marinade-finance/solana-snapshot-parser.git
+    - git clone --depth 1 -b "$${PARSER_BRANCH:-$$BUILDKITE_BRANCH}" git@github.com:marinade-finance/solana-snapshot-parser.git
     - cd solana-snapshot-parser
     - cargo build --release --bin snapshot-parser-tokens-cli
     - '[ "$${CARGO_TARGET_DIR:-target}" = target ] || install -D -t target/release "$$CARGO_TARGET_DIR"/release/snapshot-parser-tokens-cli'
@@ -148,9 +148,10 @@ steps:
       - pnpm install --frozen-lockfile
       - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot" --psql-output
     key: 'parsing-snapshot'
+    timeout_in_minutes: 240
     retry:
       automatic:
-        - limit: 4
+        - limit: 1
 
   - wait: ~
 
