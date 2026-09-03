@@ -21,7 +21,6 @@ type VeMNDESnapshotRecord = { pubkey: string; amount: string };
 type NativeStakeSnapshotRecord = { pubkey: string; amount: string };
 
 const VSR_PROGRAM = '5zgEgPbWKsAAnLPjSM56ZsbLPfVM6nUzh3u45tCnm97D';
-const SYSTEM_PROGRAM = '11111111111111111111111111111111';
 const MSOL_MINT = 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So';
 
 @Injectable()
@@ -64,7 +63,6 @@ export class ParserService {
     }
 
     return {
-      account_owners: SYSTEM_PROGRAM,
       account_mints: [MSOL_MINT].join(','),
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
     };
@@ -127,26 +125,6 @@ export class ParserService {
         yield { pubkey, amount: mndelamportsToMNDE(amount) };
       }
     }
-  }
-
-  private getSystemOwnedTokenAccountsByMint(
-    db: SQLite.Database,
-    mint: string,
-  ): { owner: string; amount: string; pubkey: string }[] {
-    return db
-      .prepare(
-        `
-          SELECT token_account.owner, cast(token_account.amount as text) as amount, account.pubkey
-          FROM token_account, account
-          WHERE token_account.mint = ? AND token_account.owner = account.pubkey AND account.owner = ? AND token_account.amount > 0
-          ORDER BY token_account.amount DESC
-        `,
-      )
-      .all([mint, SYSTEM_PROGRAM]) as {
-      owner: string;
-      amount: string;
-      pubkey: string;
-    }[];
   }
 
   private getTokenAccountsByMint(

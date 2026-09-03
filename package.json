@@ -38,7 +38,6 @@
     "@solana/web3.js": "^1.98.4",
     "better-sqlite3": "11.7.0",
     "bn.js": "^5.2.3",
-    "bs58": "^6.0.0",
     "cache-manager": "^5.7.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
