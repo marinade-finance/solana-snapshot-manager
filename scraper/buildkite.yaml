@@ -142,15 +142,15 @@ steps:
       - buildkite-agent artifact download --include-retried-jobs solana-snapshot-parser/target/release/snapshot-parser-tokens-cli .
       - buildkite-agent artifact download --include-retried-jobs filters.json .
       - snapshot_dir=$(buildkite-agent meta-data get snapshot_dir)
-      - slot=$(tar -tf "$$snapshot_dir"/snapshot-*tar.zst | head -n 5 | grep ^snapshots/.*/ | cut -d/ -f2 | uniq | head -n1)
-      - buildkite-agent meta-data set slot "$$slot"
       - chmod +x ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli
-      - ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli --ledger-path "$$snapshot_dir" --output-sqlite "$${snapshot_dir}/snapshot.db" --filters './filters.json' --sqlite-tx-bulk 2000
+      - ./solana-snapshot-parser/target/release/snapshot-parser-tokens-cli --ledger-path "$$snapshot_dir" --output-sqlite "$${snapshot_dir}/snapshot.db" --output-slot ./slot.txt --filters './filters.json' --sqlite-tx-bulk 2000
+      - slot=$(cat ./slot.txt)
+      - buildkite-agent meta-data set slot "$$slot"
       - ./index-db.bash "$${snapshot_dir}/snapshot.db"
       - pnpm install --frozen-lockfile
       - pnpm run cli -- parse --sqlite "$${snapshot_dir}/snapshot.db" --csv-output "$${snapshot_dir}/snapshot.csv" --slot "$$slot" --psql-output
     key: 'parsing-snapshot'
-    timeout_in_minutes: 240
+    timeout_in_minutes: 150
     retry:
       automatic:
         - limit: 1
