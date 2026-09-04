@@ -7,7 +7,7 @@ import {
 import { SolanaService } from 'src/solana/solana.service';
 import { Keypair } from '@solana/web3.js';
 import { batches, RdsService } from 'src/rds/rds.service';
-import { sql } from 'slonik';
+import { CommonQueryMethods, sql } from 'slonik';
 import {
   MSolVoteRecordDto,
   MSolVoteRecordsDto,
@@ -26,7 +26,7 @@ export class VotesService {
     private readonly rdsService: RdsService,
   ) {}
 
-  async getVoteRecordsFromChain(): Promise<DirectedStakeVoteRecord[]> {
+  private async getVoteRecordsFromChain(): Promise<DirectedStakeVoteRecord[]> {
     this.logger.log('Fetching votes from the chain...');
     const sdk = new DirectedStakeSdk({
       connection: this.solanaServive.connection,
@@ -308,18 +308,34 @@ export class VotesService {
     return snapshotsDto;
   }
 
-  async createMSolBatch(): Promise<number> {
-    const { batch_id: batchId } = await this.rdsService.pool.one(
+  async storeVotes(): Promise<number> {
+    // the chain scan can outlast idle_in_transaction_session_timeout, so it stays outside
+    const records = await this.getVoteRecordsFromChain();
+
+    return await this.rdsService.pool.transaction(async (db) => {
+      const batchId = await this.createMSolBatch(db);
+      await this.storeVoteRecords(db, batchId, records);
+
+      return batchId;
+    });
+  }
+
+  private async createMSolBatch(db: CommonQueryMethods): Promise<number> {
+    const { batch_id: batchId } = await db.one(
       sql.unsafe`INSERT INTO msol_votes_batches DEFAULT VALUES RETURNING batch_id`,
     );
 
     return batchId;
   }
 
-  async storeVoteRecords(batchId: number, records: DirectedStakeVoteRecord[]) {
+  private async storeVoteRecords(
+    db: CommonQueryMethods,
+    batchId: number,
+    records: DirectedStakeVoteRecord[],
+  ) {
     const BATCH_SIZE = 1000;
     for (const batch of batches(records, BATCH_SIZE)) {
-      await this.rdsService.pool.query(sql.unsafe`
+      await db.query(sql.unsafe`
                 INSERT INTO msol_votes (batch_id, owner, vote_account)
                 SELECT *
                 FROM jsonb_to_recordset(${sql.jsonb(

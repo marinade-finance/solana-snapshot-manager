@@ -10,9 +10,9 @@ pnpm install --frozen-lockfile
 ```bash
 export POSTGRES_URL=...
 export RPC_URL=...
-# preparing filters that are used while parsing snapshot by marinade-snapshot-etl
+# preparing filters that are used while parsing snapshot by solana-snapshot-parser
 pnpm run cli -- filters --json-output filters.json
-# parsing the pre-processed SQLite DB file produced by marinade-snapshot-etl
+# parsing the pre-processed SQLite DB file produced by snapshot-parser-tokens-cli
 pnpm run cli -- parse --slot <number> --sqlite <input-sqlite> [--csv-output <csv-path>] [--psql-output]
 pnpm run cli -- record-msol-votes
 ```
