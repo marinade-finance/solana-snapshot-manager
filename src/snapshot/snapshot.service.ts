@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { sql } from 'slonik';
+import { CommonQueryMethods, sql } from 'slonik';
 import { batches, RdsService } from 'src/rds/rds.service';
 import {
   MsolBalanceDto,
@@ -26,6 +26,12 @@ export type VeMNDEHolderRecord = {
 export type NativeStakerRecord = {
   withdraw_authority: string;
   amount: number;
+};
+
+export type SnapshotRecords = {
+  holders: HolderRecord[];
+  veMNDEHolders: VeMNDEHolderRecord[];
+  nativeStakers: NativeStakerRecord[];
 };
 
 @Injectable()
@@ -213,21 +219,47 @@ export class SnapshotService {
     }));
   }
 
-  async createSnapshot(slot: number): Promise<number> {
+  async storeSnapshot(slot: number, records: SnapshotRecords): Promise<number> {
+    // getBlockTime can take ~100 RPC round trips, too long to idle inside the transaction
     const blockTime = await this.solanaService.getBlockTime(slot);
-    const { snapshot_id: snapshotId } = await this.rdsService.pool.one(
+
+    return await this.rdsService.pool.transaction(async (db) => {
+      const snapshotId = await this.createSnapshot(db, slot, blockTime);
+      await this.storeSnapshotNativeStakerRecords(
+        db,
+        snapshotId,
+        records.nativeStakers,
+      );
+      await this.storeSnapshotVeMNDERecords(
+        db,
+        snapshotId,
+        records.veMNDEHolders,
+      );
+      await this.storeSnapshotRecords(db, snapshotId, records.holders);
+
+      return snapshotId;
+    });
+  }
+
+  private async createSnapshot(
+    db: CommonQueryMethods,
+    slot: number,
+    blockTime: Date,
+  ): Promise<number> {
+    const { snapshot_id: snapshotId } = await db.one(
       sql.unsafe`INSERT INTO snapshots (slot, blocktime) VALUES (${slot}, ${blockTime.toISOString()}) RETURNING snapshot_id`,
     );
 
     return snapshotId;
   }
-  async storeSnapshotRecords(
+  private async storeSnapshotRecords(
+    db: CommonQueryMethods,
     snapshotId: number,
     holders: HolderRecord[],
   ): Promise<void> {
     const BATCH_SIZE = 1000;
     for (const batch of batches(holders, BATCH_SIZE)) {
-      await this.rdsService.pool.query(sql.unsafe`
+      await db.query(sql.unsafe`
                 INSERT INTO msol_holders (snapshot_id, owner, amount, sources, amounts, is_vault)
                 SELECT *
                 FROM jsonb_to_recordset(${sql.jsonb(
@@ -249,13 +281,14 @@ export class SnapshotService {
       });
     }
   }
-  async storeSnapshotVeMNDERecords(
+  private async storeSnapshotVeMNDERecords(
+    db: CommonQueryMethods,
     snapshotId: number,
     holders: VeMNDEHolderRecord[],
   ): Promise<void> {
     const BATCH_SIZE = 1000;
     for (const batch of batches(holders, BATCH_SIZE)) {
-      await this.rdsService.pool.query(sql.unsafe`
+      await db.query(sql.unsafe`
                 INSERT INTO vemnde_holders (snapshot_id, owner, amount)
                 SELECT *
                 FROM jsonb_to_recordset(${sql.jsonb(
@@ -272,13 +305,14 @@ export class SnapshotService {
       });
     }
   }
-  async storeSnapshotNativeStakerRecords(
+  private async storeSnapshotNativeStakerRecords(
+    db: CommonQueryMethods,
     snapshotId: number,
     holders: NativeStakerRecord[],
   ): Promise<void> {
     const BATCH_SIZE = 1000;
     for (const batch of batches(holders, BATCH_SIZE)) {
-      await this.rdsService.pool.query(sql.unsafe`
+      await db.query(sql.unsafe`
                 INSERT INTO native_stake_accounts (snapshot_id, withdraw_authority, amount)
                 SELECT *
                 FROM jsonb_to_recordset(${sql.jsonb(

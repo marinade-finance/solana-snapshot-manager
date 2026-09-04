@@ -10,16 +10,17 @@ pnpm install --frozen-lockfile
 ```bash
 export POSTGRES_URL=...
 export RPC_URL=...
-# preparing filters that are used while parsing snapshot by marinade-snapshot-etl
+# preparing filters that are used while parsing snapshot by solana-snapshot-parser
 pnpm run cli -- filters --json-output filters.json
-# parsing the pre-processed SQLite DB file produced by marinade-snapshot-etl
+# parsing the pre-processed SQLite DB file produced by snapshot-parser-tokens-cli
 pnpm run cli -- parse --slot <number> --sqlite <input-sqlite> [--csv-output <csv-path>] [--psql-output]
 pnpm run cli -- record-msol-votes
 ```
 
-**NOTE 1:** The slot can be parsed from the snapshot file name.
-For example with name `snapshot-221035708-5hm7mejai5LF1HEi5yiNjQSPoAvN9EqHtjnJ3Dai5m2y.tar.zst`
-the snapshot is the number `221035708`, see [buildspec.yaml](./scraper/buildspec.yaml).
+**NOTE 1:** The slot is the slot of the bank the parser loaded, which is not derivable from the
+full snapshot's file name when an incremental snapshot is applied on top. Get it by running
+`snapshot-parser-tokens-cli` with `--output-slot <path>` and reading that file,
+see [buildkite.yaml](./scraper/buildkite.yaml).
 
 **NOTE 2:** Before execution of the `parse` command on the sqlite database consider creating
 additional indexes as defined in [index-db.bash](./index-db.bash).

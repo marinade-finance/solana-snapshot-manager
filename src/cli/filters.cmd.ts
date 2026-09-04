@@ -10,7 +10,7 @@ type FiltersCommandOptions = {
 @Command({
   name: 'filters',
   description:
-    'Prepares filters for snapshot parser (project: marinade-snapshot-etl)',
+    'Prepares filters for snapshot parser (project: solana-snapshot-parser)',
 })
 export class FiltersCommand extends CommandRunner {
   private readonly _logger = new Logger(FiltersCommand.name);
