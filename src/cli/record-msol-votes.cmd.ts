@@ -11,8 +11,6 @@ export class RecordMSolVotesCommand extends CommandRunner {
   }
 
   async run(): Promise<void> {
-    const batchId = await this.votesService.createMSolBatch();
-    const voteRecords = await this.votesService.getVoteRecordsFromChain();
-    await this.votesService.storeVoteRecords(batchId, voteRecords);
+    await this.votesService.storeVotes();
   }
 }

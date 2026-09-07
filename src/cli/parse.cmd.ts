@@ -143,19 +143,11 @@ export class ParseCommand extends CommandRunner {
     csvWriter?.end();
 
     if (psqlOutput) {
-      const snapshotId = await this.snapshotService.createSnapshot(slot);
-      await this.snapshotService.storeSnapshotNativeStakerRecords(
-        snapshotId,
-        Object.values(nativeStakers),
-      );
-      await this.snapshotService.storeSnapshotVeMNDERecords(
-        snapshotId,
-        Object.values(veMNDEHolders),
-      );
-      await this.snapshotService.storeSnapshotRecords(
-        snapshotId,
-        Object.values(holders),
-      );
+      await this.snapshotService.storeSnapshot(slot, {
+        holders: Object.values(holders),
+        veMNDEHolders: Object.values(veMNDEHolders),
+        nativeStakers: Object.values(nativeStakers),
+      });
     }
   }
 
