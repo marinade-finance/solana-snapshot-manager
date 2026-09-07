@@ -4,3 +4,7 @@ allowBuilds:
   better-sqlite3: true
   bufferutil: true
   utf-8-validate: true
+overrides:
+  'rpc-websockets@^9': '9.3.8'
+  'toml@^3': '^4.3.0'
+  'tmp@^0.0.33': '^0.2.7'
