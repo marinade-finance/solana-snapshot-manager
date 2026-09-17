@@ -145,6 +145,18 @@ describeWithPostgres('SnapshotService.getMsolBalanceHistory', () => {
     await expect(historyOf('stranger')).resolves.toEqual([]);
   });
 
+  it('includes snapshots taken later on the end date', async () => {
+    const lateOnTheEndDate = await service.getMsolBalanceHistory(
+      'whale',
+      '2026-08-26',
+      '2026-09-04',
+    );
+
+    expect(lateOnTheEndDate.map(({ slot }) => String(slot))).toContain(
+      '444254105',
+    );
+  });
+
   it('starts at the right snapshot when two share a blocktime', async () => {
     await seed(pool, [
       {

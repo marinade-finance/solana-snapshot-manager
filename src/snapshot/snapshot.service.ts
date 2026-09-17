@@ -10,6 +10,12 @@ import {
 } from './snapshot.dto';
 import { SolanaService } from 'src/solana/solana.service';
 
+const startOfNextUtcDay = (date: string): Date => {
+  const dayAfter = new Date(date);
+  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+  return dayAfter;
+};
+
 export type HolderRecord = {
   holder: string;
   amount: number;
@@ -140,21 +146,22 @@ export class SnapshotService {
     };
   }
 
-  // Resolves an optional [startDate, endDate] range to a concrete window,
-  // defaulting to the last month when bounds are missing.
   private resolveHistoryRange(
     startDate?: string,
     endDate?: string,
-  ): { startDate: string; endDate: string } {
-    const end = endDate ? new Date(endDate) : new Date();
+  ): { startDate: string; endBefore: string } {
+    const endBefore = endDate ? startOfNextUtcDay(endDate) : new Date();
     let start: Date;
     if (startDate) {
       start = new Date(startDate);
     } else {
-      start = new Date(end);
+      start = new Date(endBefore);
       start.setMonth(start.getMonth() - 1);
     }
-    return { startDate: start.toISOString(), endDate: end.toISOString() };
+    return {
+      startDate: start.toISOString(),
+      endBefore: endBefore.toISOString(),
+    };
   }
 
   async getMsolBalanceHistory(
@@ -164,7 +171,7 @@ export class SnapshotService {
   ): Promise<MsolBalanceHistoryItemDto[]> {
     const range = this.resolveHistoryRange(startDate, endDate);
     this.logger.log(
-      `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
+      `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endBefore})`,
     );
     const result = await this.rdsService.pool.any(sql.unsafe`
             WITH msol_snapshots AS (
@@ -175,7 +182,7 @@ export class SnapshotService {
                        ON msol_holders.snapshot_id = snapshots.snapshot_id
                       AND msol_holders.owner = ${owner}
                 WHERE snapshots.blocktime >= ${range.startDate}
-                  AND snapshots.blocktime <= ${range.endDate}
+                  AND snapshots.blocktime < ${range.endBefore}
                   AND EXISTS (
                       SELECT 1
                       FROM msol_holders any_holder
@@ -213,14 +220,14 @@ export class SnapshotService {
   ): Promise<VeMNDEBalanceHistoryItemDto[]> {
     const range = this.resolveHistoryRange(startDate, endDate);
     this.logger.log(
-      `Fetching getVeMNDEBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
+      `Fetching getVeMNDEBalanceHistory for owner ${owner} [${range.startDate},${range.endBefore})`,
     );
     const result = await this.rdsService.pool.any(sql.unsafe`
             SELECT vemnde_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
             FROM vemnde_holders
             INNER JOIN snapshots USING (snapshot_id)
             WHERE snapshots.blocktime >= ${range.startDate}
-              AND snapshots.blocktime <= ${range.endDate}
+              AND snapshots.blocktime < ${range.endBefore}
               AND vemnde_holders.owner = ${owner}
             ORDER BY snapshots.blocktime
         `);
