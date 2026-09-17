@@ -63,6 +63,15 @@ const seed = async (pool: DatabasePool, snapshots: SnapshotFixture[]) => {
   }
 };
 
+const rewriteRowSoItIsScannedLast = async (
+  pool: DatabasePool,
+  slot: number,
+) => {
+  await pool.query(
+    sql.unsafe`UPDATE snapshots SET slot = slot WHERE slot = ${slot}`,
+  );
+};
+
 describeWithPostgres('SnapshotService.getMsolBalanceHistory', () => {
   let pool: DatabasePool;
   let service: SnapshotService;
@@ -134,5 +143,48 @@ describeWithPostgres('SnapshotService.getMsolBalanceHistory', () => {
 
   it('returns nothing for a holder absent from every snapshot', async () => {
     await expect(historyOf('stranger')).resolves.toEqual([]);
+  });
+
+  it('starts at the right snapshot when two share a blocktime', async () => {
+    await seed(pool, [
+      {
+        slot: 446000001,
+        blocktime: '2026-09-04T20:00:00Z',
+        holders: [['other', 5]],
+      },
+      {
+        slot: 446000002,
+        blocktime: '2026-09-04T20:00:00Z',
+        holders: [
+          ['twin', 42],
+          ['other', 5],
+        ],
+      },
+    ]);
+
+    await expect(historyOf('twin')).resolves.toEqual([
+      ['2026-09-04T20:00:00.000Z', '446000002', '42'],
+    ]);
+  });
+
+  it('orders snapshots sharing a blocktime by the order they were recorded', async () => {
+    await seed(pool, [
+      {
+        slot: 446000003,
+        blocktime: '2026-09-04T20:00:00Z',
+        holders: [['twin', 1]],
+      },
+      {
+        slot: 446000004,
+        blocktime: '2026-09-04T20:00:00Z',
+        holders: [['twin', 2]],
+      },
+    ]);
+    await rewriteRowSoItIsScannedLast(pool, 446000003);
+
+    await expect(historyOf('twin')).resolves.toEqual([
+      ['2026-09-04T20:00:00.000Z', '446000003', '1'],
+      ['2026-09-04T20:00:00.000Z', '446000004', '2'],
+    ]);
   });
 });

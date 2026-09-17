@@ -53,4 +53,5 @@ $ pnpm run test:cov
 
 Specs that exercise SQL run against a real PostgreSQL with the
 [migrations](./migrations) applied, and are skipped unless `POSTGRES_TEST_URL`
-points at one.
+points at one. They truncate every table between cases, so point the variable at
+a scratch database, never at a dev or staging one.

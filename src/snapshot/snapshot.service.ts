@@ -168,7 +168,8 @@ export class SnapshotService {
     );
     const result = await this.rdsService.pool.any(sql.unsafe`
             WITH msol_snapshots AS (
-                SELECT snapshots.slot, snapshots.created_at, snapshots.blocktime, msol_holders.amount
+                SELECT snapshots.snapshot_id, snapshots.slot, snapshots.created_at,
+                       snapshots.blocktime, msol_holders.amount
                 FROM snapshots
                 LEFT JOIN msol_holders
                        ON msol_holders.snapshot_id = snapshots.snapshot_id
@@ -183,10 +184,14 @@ export class SnapshotService {
             )
             SELECT COALESCE(amount, 0) AS amount, slot, created_at, blocktime
             FROM msol_snapshots
-            WHERE blocktime >= (
-                SELECT MIN(blocktime) FROM msol_snapshots WHERE amount IS NOT NULL
+            WHERE (blocktime, snapshot_id) >= (
+                SELECT blocktime, snapshot_id
+                FROM msol_snapshots
+                WHERE amount IS NOT NULL
+                ORDER BY blocktime, snapshot_id
+                LIMIT 1
             )
-            ORDER BY blocktime
+            ORDER BY blocktime, snapshot_id
         `);
 
     this.logger.log('Msol holder history fetched', {
