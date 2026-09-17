@@ -183,11 +183,6 @@ export class SnapshotService {
                       AND msol_holders.owner = ${owner}
                 WHERE snapshots.blocktime >= ${range.startDate}
                   AND snapshots.blocktime < ${range.endBefore}
-                  AND EXISTS (
-                      SELECT 1
-                      FROM msol_holders any_holder
-                      WHERE any_holder.snapshot_id = snapshots.snapshot_id
-                  )
             )
             SELECT COALESCE(amount, 0) AS amount, slot, created_at, blocktime
             FROM msol_snapshots
@@ -198,6 +193,14 @@ export class SnapshotService {
                 ORDER BY blocktime, snapshot_id
                 LIMIT 1
             )
+              AND (
+                amount IS NOT NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM msol_holders any_holder
+                    WHERE any_holder.snapshot_id = msol_snapshots.snapshot_id
+                )
+              )
             ORDER BY blocktime, snapshot_id
         `);
 
