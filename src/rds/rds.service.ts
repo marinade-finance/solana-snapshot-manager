@@ -14,6 +14,17 @@ export const batches = function* <T>(items: T[], size: number): Generator<T[]> {
 };
 
 export const PSQL_POOL_PROVIDER = 'PSQL_POOL_PROVIDER';
+export const typeParsers = [
+  ...createTypeParserPreset(),
+  {
+    name: 'timestamptz',
+    parse: (timestamp: string): Date => new Date(timestamp),
+  },
+  {
+    name: 'numeric',
+    parse: (numeric: string): string => numeric,
+  },
+];
 export const poolFactory = {
   provide: PSQL_POOL_PROVIDER,
   useFactory: async (configService: ConfigService) => {
@@ -39,17 +50,7 @@ export const poolFactory = {
 
     return await createPool(configService.postgresUrl, {
       ssl,
-      typeParsers: [
-        ...createTypeParserPreset(),
-        {
-          name: 'timestamptz',
-          parse: (timestamp): Date => new Date(timestamp),
-        },
-        {
-          name: 'numeric',
-          parse: (numeric): string => numeric,
-        },
-      ],
+      typeParsers,
       ...statementTimeout,
     });
   },

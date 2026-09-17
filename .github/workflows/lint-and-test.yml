@@ -13,6 +13,20 @@ jobs:
   lint-and-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      POSTGRES_TEST_URL: postgres://postgres:postgres@localhost:5432/postgres
+    services:
+      postgres:
+        image: postgres:16.13-alpine@sha256:4e6e670bb069649261c9c18031f0aded7bb249a5b6664ddec29c013a89310d50
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: 🏃‍♂️‍➡️ Checkout project
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,6 +49,12 @@ jobs:
 
       - name: 🧭 Run lint
         run: pnpm lint
+
+      - name: 🗄️ Apply migrations
+        run: |
+          for migration in migrations/*.sql; do
+            psql "$POSTGRES_TEST_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
 
       - name: 🧨 Run test
         run: pnpm test

@@ -50,3 +50,7 @@ $ pnpm run test:e2e
 # test coverage
 $ pnpm run test:cov
 ```
+
+Specs that exercise SQL run against a real PostgreSQL with the
+[migrations](./migrations) applied, and are skipped unless `POSTGRES_TEST_URL`
+points at one.

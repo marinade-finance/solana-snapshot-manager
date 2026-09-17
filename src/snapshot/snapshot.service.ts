@@ -167,13 +167,26 @@ export class SnapshotService {
       `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
     );
     const result = await this.rdsService.pool.any(sql.unsafe`
-            SELECT msol_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
-            FROM msol_holders
-            INNER JOIN snapshots USING (snapshot_id)
-            WHERE snapshots.blocktime >= ${range.startDate}
-              AND snapshots.blocktime <= ${range.endDate}
-              AND msol_holders.owner = ${owner}
-            ORDER BY snapshots.blocktime
+            WITH msol_snapshots AS (
+                SELECT snapshots.slot, snapshots.created_at, snapshots.blocktime, msol_holders.amount
+                FROM snapshots
+                LEFT JOIN msol_holders
+                       ON msol_holders.snapshot_id = snapshots.snapshot_id
+                      AND msol_holders.owner = ${owner}
+                WHERE snapshots.blocktime >= ${range.startDate}
+                  AND snapshots.blocktime <= ${range.endDate}
+                  AND EXISTS (
+                      SELECT 1
+                      FROM msol_holders any_holder
+                      WHERE any_holder.snapshot_id = snapshots.snapshot_id
+                  )
+            )
+            SELECT COALESCE(amount, 0) AS amount, slot, created_at, blocktime
+            FROM msol_snapshots
+            WHERE blocktime >= (
+                SELECT MIN(blocktime) FROM msol_snapshots WHERE amount IS NOT NULL
+            )
+            ORDER BY blocktime
         `);
 
     this.logger.log('Msol holder history fetched', {
