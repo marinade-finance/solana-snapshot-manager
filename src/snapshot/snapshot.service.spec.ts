@@ -2,6 +2,7 @@ import { DatabasePool, QuerySqlToken, createMockQueryResult } from 'slonik';
 import { RdsService } from 'src/rds/rds.service';
 import { SolanaService } from 'src/solana/solana.service';
 import { SnapshotRecords, SnapshotService } from './snapshot.service';
+import { MSolTotals } from './parser/parser.service';
 
 const records: SnapshotRecords = {
   holders: [
@@ -17,6 +18,11 @@ const records: SnapshotRecords = {
   nativeStakers: [{ withdraw_authority: 'staker-1', amount: 3 }],
 };
 
+const mSolTotals: MSolTotals = {
+  mSolParsedAmount: '6500000.123456789',
+  mSolSupply: '6500123.987654321',
+};
+
 const targetTable = (query: QuerySqlToken): string => {
   const [, table] = /INSERT INTO (\w+)/.exec(query.sql) ?? [];
   if (!table) {
@@ -26,15 +32,23 @@ const targetTable = (query: QuerySqlToken): string => {
   return table;
 };
 
-const serviceRecording = (events: string[], failOn?: string) => {
+const serviceRecording = (
+  events: string[],
+  {
+    failOn,
+    statements = [],
+  }: { failOn?: string; statements?: QuerySqlToken[] } = {},
+) => {
   const db = {
     one: async (query: QuerySqlToken) => {
       events.push(targetTable(query));
+      statements.push(query);
       return { snapshot_id: 7 };
     },
     query: async (query: QuerySqlToken) => {
       const table = targetTable(query);
       events.push(table);
+      statements.push(query);
       if (table === failOn) {
         throw new Error(`insert into ${table} failed`);
       }
@@ -74,7 +88,11 @@ describe('SnapshotService.storeSnapshot', () => {
   it('resolves the blocktime before opening the transaction', async () => {
     const events: string[] = [];
 
-    await serviceRecording(events).storeSnapshot(443747021, records);
+    await serviceRecording(events).storeSnapshot(
+      443747021,
+      records,
+      mSolTotals,
+    );
 
     expect(events.indexOf('getBlockTime')).toBeLessThan(
       events.indexOf('BEGIN'),
@@ -84,7 +102,11 @@ describe('SnapshotService.storeSnapshot', () => {
   it('writes the snapshot row and every child table in one transaction', async () => {
     const events: string[] = [];
 
-    await serviceRecording(events).storeSnapshot(443747021, records);
+    await serviceRecording(events).storeSnapshot(
+      443747021,
+      records,
+      mSolTotals,
+    );
 
     expect(events).toEqual([
       'getBlockTime',
@@ -97,13 +119,30 @@ describe('SnapshotService.storeSnapshot', () => {
     ]);
   });
 
+  it('records the parsed mSOL total and the mint supply on the snapshot row', async () => {
+    const statements: QuerySqlToken[] = [];
+
+    await serviceRecording([], { statements }).storeSnapshot(
+      443747021,
+      records,
+      mSolTotals,
+    );
+
+    const [snapshotInsert] = statements;
+    expect(snapshotInsert?.sql).toContain('msol_parsed_amount');
+    expect(snapshotInsert?.sql).toContain('msol_supply');
+    expect(snapshotInsert?.values).toContain(mSolTotals.mSolParsedAmount);
+    expect(snapshotInsert?.values).toContain(mSolTotals.mSolSupply);
+  });
+
   it('rolls back and propagates when a child insert fails', async () => {
     const events: string[] = [];
 
     await expect(
-      serviceRecording(events, 'msol_holders').storeSnapshot(
+      serviceRecording(events, { failOn: 'msol_holders' }).storeSnapshot(
         443747021,
         records,
+        mSolTotals,
       ),
     ).rejects.toThrow('insert into msol_holders failed');
 
