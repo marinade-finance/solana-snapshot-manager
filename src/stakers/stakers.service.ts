@@ -6,6 +6,7 @@ import {
   AllNativeStakeBalancesDto,
   StakerBalancesDto,
 } from '../snapshot/snapshot.dto';
+import { startOfNextUtcDay } from 'src/util';
 
 @Injectable()
 export class StakersService {
@@ -22,18 +23,13 @@ export class StakersService {
       `Fetching getNativeStakeBalances for authority ${withdraw_authority} [${startDate},${endDate}]`,
     );
 
-    if (!startDate) {
-      startDate = new Date(0).toISOString();
-    }
-    if (!endDate) {
-      endDate = new Date(Date.now()).toISOString();
-    }
+    const range = this.getStartAndEndDates(startDate, endDate);
     const balances: NativeStakeBalanceDto[] = [];
     const result = await this.rdsService.pool.any(sql.unsafe`
           SELECT *
           FROM native_stake_accounts
           LEFT JOIN snapshots ON snapshots.snapshot_id = native_stake_accounts.snapshot_id
-          WHERE snapshots.created_at >= ${startDate} AND snapshots.created_at <= ${endDate} AND withdraw_authority = ${withdraw_authority}
+          WHERE snapshots.created_at >= ${range.startDate} AND snapshots.created_at < ${range.endBefore} AND withdraw_authority = ${withdraw_authority}
         `);
     if (!result) {
       this.logger.warn('Staker not found!', { withdraw_authority });
@@ -61,9 +57,9 @@ export class StakersService {
       `Fetching getAllNativeStakeBalances [${startDate},${endDate}]`,
     );
 
-    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
+    const range = this.getStartAndEndDates(startDate, endDate);
     const result = await this.rdsService.pool.any(
-      StakersService.getSqlAllNativeHolders(startDate, endDate),
+      StakersService.getSqlAllNativeHolders(range.startDate, range.endBefore),
     );
 
     if (!result || result.length === 0) {
@@ -100,7 +96,7 @@ export class StakersService {
       `Fetching getAllStakeBalances for ${pubkey} [${startDate},${endDate}]`,
     );
 
-    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
+    const range = this.getStartAndEndDates(startDate, endDate);
     const result = await this.rdsService.pool.any(sql.unsafe`
         WITH 
             native_holdings AS (
@@ -118,7 +114,8 @@ export class StakersService {
         FROM snapshots
         LEFT JOIN native_holdings ON snapshots.snapshot_id = native_holdings.native_snapshot_id
         LEFT JOIN liquid_holdings ON snapshots.snapshot_id = liquid_holdings.liquid_snapshot_id
-        WHERE snapshots.created_at BETWEEN ${startDate} AND ${endDate}
+        WHERE snapshots.created_at >= ${range.startDate}
+          AND snapshots.created_at < ${range.endBefore}
       `);
 
     if (!result || result.length === 0) {
@@ -152,12 +149,12 @@ export class StakersService {
   ): Promise<StakerBalancesDto[]> {
     this.logger.log(`Fetching getAllStakersBalances [${startDate},${endDate}]`);
 
-    ({ startDate, endDate } = this.getStartAndEndDates(startDate, endDate));
+    const range = this.getStartAndEndDates(startDate, endDate);
     const resultLiquid = this.rdsService.pool.any(
-      StakersService.getSqlAllLiquidHolders(startDate, endDate),
+      StakersService.getSqlAllLiquidHolders(range.startDate, range.endBefore),
     );
     const resultNative = this.rdsService.pool.any(
-      StakersService.getSqlAllNativeHolders(startDate, endDate),
+      StakersService.getSqlAllNativeHolders(range.startDate, range.endBefore),
     );
 
     const userData: Map<string, StakerBalancesDto> = new Map();
@@ -228,18 +225,18 @@ export class StakersService {
     return Array.from(userData.values());
   }
 
-  private static getSqlDistinctSnapshots(startDate: string, endDate: string) {
+  private static getSqlDistinctSnapshots(startDate: string, endBefore: string) {
     return sql.fragment`
       SELECT DISTINCT snapshot_id, created_at, blocktime, slot
       FROM snapshots
-      WHERE created_at BETWEEN ${startDate} AND ${endDate}
+      WHERE created_at >= ${startDate} AND created_at < ${endBefore}
     `;
   }
 
-  private static getSqlAllNativeHolders(startDate: string, endDate: string) {
+  private static getSqlAllNativeHolders(startDate: string, endBefore: string) {
     return sql.unsafe`
       WITH snapshots_filtered AS (
-        ${StakersService.getSqlDistinctSnapshots(startDate, endDate)}
+        ${StakersService.getSqlDistinctSnapshots(startDate, endBefore)}
       ),
       native_holdings AS (
           SELECT 
@@ -268,10 +265,10 @@ export class StakersService {
     `;
   }
 
-  private static getSqlAllLiquidHolders(startDate: string, endDate: string) {
+  private static getSqlAllLiquidHolders(startDate: string, endBefore: string) {
     return sql.unsafe`
       WITH snapshots_filtered AS (
-        ${StakersService.getSqlDistinctSnapshots(startDate, endDate)}
+        ${StakersService.getSqlDistinctSnapshots(startDate, endBefore)}
       ),
       liquid_holdings AS (
           SELECT 
@@ -302,16 +299,12 @@ export class StakersService {
   private getStartAndEndDates(
     startDate?: string,
     endDate?: string,
-  ): { startDate: string; endDate: string } {
-    if (!startDate) {
-      startDate = new Date(0).toISOString();
-    }
-    if (!endDate) {
-      endDate = new Date(Date.now()).toISOString();
-    }
+  ): { startDate: string; endBefore: string } {
     return {
-      startDate,
-      endDate,
+      startDate: startDate ?? new Date(0).toISOString(),
+      endBefore: endDate
+        ? startOfNextUtcDay(endDate).toISOString()
+        : new Date(Date.now()).toISOString(),
     };
   }
 }

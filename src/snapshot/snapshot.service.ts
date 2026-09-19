@@ -9,12 +9,7 @@ import {
   VeMNDEBalanceHistoryItemDto,
 } from './snapshot.dto';
 import { SolanaService } from 'src/solana/solana.service';
-
-const startOfNextUtcDay = (date: string): Date => {
-  const dayAfter = new Date(date);
-  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
-  return dayAfter;
-};
+import { startOfNextUtcDay } from 'src/util';
 
 export type HolderRecord = {
   holder: string;
