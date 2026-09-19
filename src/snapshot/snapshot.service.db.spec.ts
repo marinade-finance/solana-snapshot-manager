@@ -49,6 +49,14 @@ const SNAPSHOTS_AROUND_THE_OUTAGE: SnapshotFixture[] = [
   },
 ];
 
+const SNAPSHOT_BEFORE_THE_WINDOW: SnapshotFixture[] = [
+  {
+    slot: 438000001,
+    blocktime: '2026-08-10T09:00:00Z',
+    holders: [['departed', 13]],
+  },
+];
+
 const seed = async (pool: DatabasePool, snapshots: SnapshotFixture[]) => {
   for (const { slot, blocktime, holders } of snapshots) {
     const { snapshot_id: snapshotId } = await pool.one(sql.unsafe`
@@ -145,6 +153,23 @@ describeWithPostgres('SnapshotService balance history', () => {
   });
 
   it('returns nothing for a holder absent from every snapshot', async () => {
+    await expect(historyOf('stranger')).resolves.toEqual([]);
+  });
+
+  it('reports zeros across a window the holder left before', async () => {
+    await seed(pool, SNAPSHOT_BEFORE_THE_WINDOW);
+
+    await expect(historyOf('departed')).resolves.toEqual([
+      ['2026-08-28T13:45:59.000Z', '442351854', '0'],
+      ['2026-08-29T07:40:29.000Z', '442552086', '0'],
+      ['2026-09-02T08:36:09.000Z', '443652525', '0'],
+      ['2026-09-04T13:15:07.000Z', '444254105', '0'],
+    ]);
+  });
+
+  it('returns nothing for a never-holder even with pre-window history', async () => {
+    await seed(pool, SNAPSHOT_BEFORE_THE_WINDOW);
+
     await expect(historyOf('stranger')).resolves.toEqual([]);
   });
 
