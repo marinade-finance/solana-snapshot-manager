@@ -4,6 +4,9 @@ import { SolanaService } from 'src/solana/solana.service';
 import { SnapshotService } from './snapshot.service';
 
 const postgresUrl = process.env.POSTGRES_TEST_URL;
+if (process.env.CI && !postgresUrl) {
+  throw new Error('POSTGRES_TEST_URL is required in CI');
+}
 const describeWithPostgres = postgresUrl ? describe : describe.skip;
 
 type SnapshotFixture = {
@@ -72,7 +75,7 @@ const rewriteRowSoItIsScannedLast = async (
   );
 };
 
-describeWithPostgres('SnapshotService.getMsolBalanceHistory', () => {
+describeWithPostgres('SnapshotService balance history', () => {
   let pool: DatabasePool;
   let service: SnapshotService;
 
@@ -107,7 +110,7 @@ describeWithPostgres('SnapshotService.getMsolBalanceHistory', () => {
   });
 
   afterAll(async () => {
-    await pool.end();
+    await pool?.end();
   });
 
   it('reports zero for a snapshot that recorded no balance for the holder', async () => {
@@ -155,6 +158,44 @@ describeWithPostgres('SnapshotService.getMsolBalanceHistory', () => {
     expect(lateOnTheEndDate.map(({ slot }) => String(slot))).toContain(
       '444254105',
     );
+  });
+
+  it('defaults the window to one month before the end date', async () => {
+    await seed(pool, [
+      {
+        slot: 439000001,
+        blocktime: '2026-08-04T12:00:00Z',
+        holders: [['whale', 11]],
+      },
+    ]);
+
+    const defaultWindow = await service.getMsolBalanceHistory(
+      'whale',
+      undefined,
+      '2026-09-04',
+    );
+
+    expect(defaultWindow.map(({ slot }) => String(slot))).toContain(
+      '439000001',
+    );
+  });
+
+  it('includes veMNDE snapshots taken later on the end date', async () => {
+    const { snapshot_id: snapshotId } = await pool.one(sql.unsafe`
+      INSERT INTO snapshots (slot, blocktime)
+      VALUES (446000005, '2026-09-04T22:00:00Z')
+      RETURNING snapshot_id`);
+    await pool.query(sql.unsafe`
+      INSERT INTO vemnde_holders (snapshot_id, owner, amount)
+      VALUES (${snapshotId}, 'voter', 3)`);
+
+    const history = await service.getVeMNDEBalanceHistory(
+      'voter',
+      '2026-08-26',
+      '2026-09-04',
+    );
+
+    expect(history.map(({ slot }) => String(slot))).toEqual(['446000005']);
   });
 
   it('starts at the right snapshot when two share a blocktime', async () => {

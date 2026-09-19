@@ -150,12 +150,13 @@ export class SnapshotService {
     startDate?: string,
     endDate?: string,
   ): { startDate: string; endBefore: string } {
-    const endBefore = endDate ? startOfNextUtcDay(endDate) : new Date();
+    const end = endDate ? new Date(endDate) : new Date();
+    const endBefore = endDate ? startOfNextUtcDay(endDate) : end;
     let start: Date;
     if (startDate) {
       start = new Date(startDate);
     } else {
-      start = new Date(endBefore);
+      start = new Date(end);
       start.setMonth(start.getMonth() - 1);
     }
     return {
@@ -232,7 +233,7 @@ export class SnapshotService {
             WHERE snapshots.blocktime >= ${range.startDate}
               AND snapshots.blocktime < ${range.endBefore}
               AND vemnde_holders.owner = ${owner}
-            ORDER BY snapshots.blocktime
+            ORDER BY snapshots.blocktime, snapshots.snapshot_id
         `);
 
     this.logger.log('VeMNDE holder history fetched', {
