@@ -38,3 +38,9 @@ export function validateDateInterval(startDate: string, endDate: string) {
     );
   }
 }
+
+export function startOfNextUtcDay(date: string): Date {
+  const dayAfter = new Date(date);
+  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+  return dayAfter;
+}
