@@ -9,6 +9,7 @@ import {
   VeMNDEBalanceHistoryItemDto,
 } from './snapshot.dto';
 import { SolanaService } from 'src/solana/solana.service';
+import { MSolTotals } from './parser/parser.service';
 
 const startOfNextUtcDay = (date: string): Date => {
   const dayAfter = new Date(date);
@@ -248,12 +249,21 @@ export class SnapshotService {
     }));
   }
 
-  async storeSnapshot(slot: number, records: SnapshotRecords): Promise<number> {
+  async storeSnapshot(
+    slot: number,
+    records: SnapshotRecords,
+    mSolTotals: MSolTotals,
+  ): Promise<number> {
     // getBlockTime can take ~100 RPC round trips, too long to idle inside the transaction
     const blockTime = await this.solanaService.getBlockTime(slot);
 
     return await this.rdsService.pool.transaction(async (db) => {
-      const snapshotId = await this.createSnapshot(db, slot, blockTime);
+      const snapshotId = await this.createSnapshot(
+        db,
+        slot,
+        blockTime,
+        mSolTotals,
+      );
       await this.storeSnapshotNativeStakerRecords(
         db,
         snapshotId,
@@ -274,9 +284,10 @@ export class SnapshotService {
     db: CommonQueryMethods,
     slot: number,
     blockTime: Date,
+    { mSolParsedAmount, mSolSupply }: MSolTotals,
   ): Promise<number> {
     const { snapshot_id: snapshotId } = await db.one(
-      sql.unsafe`INSERT INTO snapshots (slot, blocktime) VALUES (${slot}, ${blockTime.toISOString()}) RETURNING snapshot_id`,
+      sql.unsafe`INSERT INTO snapshots (slot, blocktime, msol_parsed_amount, msol_supply) VALUES (${slot}, ${blockTime.toISOString()}, ${mSolParsedAmount}, ${mSolSupply}) RETURNING snapshot_id`,
     );
 
     return snapshotId;
