@@ -109,4 +109,15 @@ describe('ParseCommand', () => {
       '--min-supply-ratio must be a number between 0 and 1',
     );
   });
+
+  it('rejects an empty tolerance rather than reading it as zero', () => {
+    const command = new ParseCommand(
+      parserReporting([], { mSolParsedAmount: '0.0', mSolSupply: '0.0' }),
+      snapshotServiceRecording([]),
+    );
+
+    expect(() => command.parseArgMinSupplyRatio('  ')).toThrow(
+      '--min-supply-ratio must be a number between 0 and 1',
+    );
+  });
 });

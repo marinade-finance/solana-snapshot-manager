@@ -144,17 +144,19 @@ export class StakersService {
   }
 
   async getAllStakersBalances(
-    startDate?: string,
-    endDate?: string,
+    startDate: string,
+    endDateExclusive: string,
   ): Promise<StakerBalancesDto[]> {
-    this.logger.log(`Fetching getAllStakersBalances [${startDate},${endDate}]`);
+    this.logger.log(
+      `Fetching getAllStakersBalances [${startDate},${endDateExclusive})`,
+    );
 
-    const range = this.getStartAndEndDates(startDate, endDate);
+    const endBefore = new Date(endDateExclusive).toISOString();
     const resultLiquid = this.rdsService.pool.any(
-      StakersService.getSqlAllLiquidHolders(range.startDate, range.endBefore),
+      StakersService.getSqlAllLiquidHolders(startDate, endBefore),
     );
     const resultNative = this.rdsService.pool.any(
-      StakersService.getSqlAllNativeHolders(range.startDate, range.endBefore),
+      StakersService.getSqlAllNativeHolders(startDate, endBefore),
     );
 
     const userData: Map<string, StakerBalancesDto> = new Map();

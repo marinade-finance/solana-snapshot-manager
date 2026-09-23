@@ -139,6 +139,28 @@ describeWithPostgres('StakersService date interval', () => {
     expect(sortedSlots(balances)).not.toContain('444455191');
   });
 
+  it('treats the list-stakers end date as exclusive', async () => {
+    const stakers = await service.getAllStakersBalances(
+      '2026-09-01',
+      '2026-09-05',
+    );
+
+    expect(
+      stakers.flatMap(({ balances }) => balances.map(({ slot }) => slot)),
+    ).not.toContain(444455191);
+  });
+
+  it('exports every snapshot below the list-stakers end date', async () => {
+    const stakers = await service.getAllStakersBalances(
+      '2026-09-01',
+      '2026-09-06',
+    );
+
+    expect([
+      ...new Set(sortedSlots(stakers.flatMap(({ balances }) => balances))),
+    ]).toEqual(['443652525', '443952803', '444254105', '444455191']);
+  });
+
   it('starts at the start date rather than the day before', async () => {
     const balances = await service.getNativeStakeBalances(
       STAKER,

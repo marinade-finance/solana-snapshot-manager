@@ -222,7 +222,7 @@ export class ParseCommand extends CommandRunner {
   })
   parseArgMinSupplyRatio(val: string): number {
     const ratio = Number(val);
-    if (!(ratio >= 0 && ratio <= 1)) {
+    if (val.trim() === '' || !(ratio >= 0 && ratio <= 1)) {
       throw new Error('--min-supply-ratio must be a number between 0 and 1');
     }
 
