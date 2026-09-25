@@ -1,6 +1,6 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { Logger } from '@nestjs/common';
-import { ParserService } from '../snapshot/parser/parser.service';
+import { MSolTotals, ParserService } from '../snapshot/parser/parser.service';
 import * as fs from 'fs';
 import * as csv from 'csv';
 import {
@@ -15,6 +15,20 @@ type ParseCommandOptions = {
   sqlite: string;
   csvOutput?: string;
   psqlOutput?: boolean;
+  minSupplyRatio: number;
+};
+
+const DEFAULT_MIN_SUPPLY_RATIO = 0.99;
+
+const assertParseCoversSupply = (
+  { mSolParsedAmount, mSolSupply }: MSolTotals,
+  minSupplyRatio: number,
+): void => {
+  if (Number(mSolParsedAmount) < Number(mSolSupply) * minSupplyRatio) {
+    throw new Error(
+      `Parsed mSOL ${mSolParsedAmount} is below the required ${minSupplyRatio} of the mSOL supply ${mSolSupply}, refusing to store an incomplete snapshot`,
+    );
+  }
 };
 
 const prepareCsvWriter = (csvPath: string) => {
@@ -90,7 +104,13 @@ export class ParseCommand extends CommandRunner {
 
   async run(
     passedParam: string[],
-    { slot, sqlite, csvOutput, psqlOutput }: ParseCommandOptions,
+    {
+      slot,
+      sqlite,
+      csvOutput,
+      psqlOutput,
+      minSupplyRatio,
+    }: ParseCommandOptions,
   ): Promise<void> {
     if (!slot) {
       throw new Error('--slot argument is required');
@@ -100,7 +120,10 @@ export class ParseCommand extends CommandRunner {
     const veMNDEHolders: Record<string, VeMNDEHolderRecord> = {};
     const nativeStakers: Record<string, NativeStakerRecord> = {};
 
-    for await (const parsedRecord of this.parserService.parse(sqlite, slot)) {
+    const parsedRecords = this.parserService.parse(sqlite, slot);
+    let parsed = await parsedRecords.next();
+    while (!parsed.done) {
+      const parsedRecord = parsed.value;
       csvWriter?.write(parsedRecord);
       const holderRecord =
         holders[parsedRecord.pubkey] ??
@@ -111,7 +134,10 @@ export class ParseCommand extends CommandRunner {
         parsedRecord.source,
         parsedRecord.isVault,
       );
+      parsed = await parsedRecords.next();
     }
+    const mSolTotals = parsed.value;
+    assertParseCoversSupply(mSolTotals, minSupplyRatio);
 
     for await (const parsedVeMNDERecord of this.parserService.parseVeMNDE(
       sqlite,
@@ -143,11 +169,15 @@ export class ParseCommand extends CommandRunner {
     csvWriter?.end();
 
     if (psqlOutput) {
-      await this.snapshotService.storeSnapshot(slot, {
-        holders: Object.values(holders),
-        veMNDEHolders: Object.values(veMNDEHolders),
-        nativeStakers: Object.values(nativeStakers),
-      });
+      await this.snapshotService.storeSnapshot(
+        slot,
+        {
+          holders: Object.values(holders),
+          veMNDEHolders: Object.values(veMNDEHolders),
+          nativeStakers: Object.values(nativeStakers),
+        },
+        mSolTotals,
+      );
     }
   }
 
@@ -182,5 +212,20 @@ export class ParseCommand extends CommandRunner {
   })
   parseArgPsql(): boolean {
     return true;
+  }
+
+  @Option({
+    flags: '--min-supply-ratio <number>',
+    description:
+      'Share of the mSOL mint supply the parse must account for to be stored',
+    defaultValue: DEFAULT_MIN_SUPPLY_RATIO,
+  })
+  parseArgMinSupplyRatio(val: string): number {
+    const ratio = Number(val);
+    if (val.trim() === '' || !(ratio >= 0 && ratio <= 1)) {
+      throw new Error('--min-supply-ratio must be a number between 0 and 1');
+    }
+
+    return ratio;
   }
 }

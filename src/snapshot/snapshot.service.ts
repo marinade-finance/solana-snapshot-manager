@@ -9,6 +9,8 @@ import {
   VeMNDEBalanceHistoryItemDto,
 } from './snapshot.dto';
 import { SolanaService } from 'src/solana/solana.service';
+import { MSolTotals } from './parser/parser.service';
+import { startOfNextUtcDay } from 'src/util';
 
 export type HolderRecord = {
   holder: string;
@@ -140,13 +142,12 @@ export class SnapshotService {
     };
   }
 
-  // Resolves an optional [startDate, endDate] range to a concrete window,
-  // defaulting to the last month when bounds are missing.
   private resolveHistoryRange(
     startDate?: string,
     endDate?: string,
-  ): { startDate: string; endDate: string } {
+  ): { startDate: string; endBefore: string } {
     const end = endDate ? new Date(endDate) : new Date();
+    const endBefore = endDate ? startOfNextUtcDay(endDate) : end;
     let start: Date;
     if (startDate) {
       start = new Date(startDate);
@@ -154,7 +155,10 @@ export class SnapshotService {
       start = new Date(end);
       start.setMonth(start.getMonth() - 1);
     }
-    return { startDate: start.toISOString(), endDate: end.toISOString() };
+    return {
+      startDate: start.toISOString(),
+      endBefore: endBefore.toISOString(),
+    };
   }
 
   async getMsolBalanceHistory(
@@ -164,16 +168,42 @@ export class SnapshotService {
   ): Promise<MsolBalanceHistoryItemDto[]> {
     const range = this.resolveHistoryRange(startDate, endDate);
     this.logger.log(
-      `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
+      `Fetching getMsolBalanceHistory for owner ${owner} [${range.startDate},${range.endBefore})`,
     );
     const result = await this.rdsService.pool.any(sql.unsafe`
-            SELECT msol_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
-            FROM msol_holders
-            INNER JOIN snapshots USING (snapshot_id)
-            WHERE snapshots.blocktime >= ${range.startDate}
-              AND snapshots.blocktime <= ${range.endDate}
-              AND msol_holders.owner = ${owner}
-            ORDER BY snapshots.blocktime
+            WITH msol_snapshots AS (
+                SELECT snapshots.snapshot_id, snapshots.slot, snapshots.created_at,
+                       snapshots.blocktime, msol_holders.amount
+                FROM snapshots
+                LEFT JOIN msol_holders
+                       ON msol_holders.snapshot_id = snapshots.snapshot_id
+                      AND msol_holders.owner = ${owner}
+                WHERE snapshots.blocktime >= ${range.startDate}
+                  AND snapshots.blocktime < ${range.endBefore}
+            ),
+            first_holding AS (
+                SELECT snapshots.blocktime, snapshots.snapshot_id
+                FROM msol_holders
+                INNER JOIN snapshots USING (snapshot_id)
+                WHERE msol_holders.owner = ${owner}
+                ORDER BY snapshots.blocktime, snapshots.snapshot_id
+                LIMIT 1
+            )
+            SELECT COALESCE(amount, 0) AS amount, slot, created_at, blocktime
+            FROM msol_snapshots
+            WHERE (blocktime, snapshot_id) >= (
+                SELECT blocktime, snapshot_id
+                FROM first_holding
+            )
+              AND (
+                amount IS NOT NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM msol_holders any_holder
+                    WHERE any_holder.snapshot_id = msol_snapshots.snapshot_id
+                )
+              )
+            ORDER BY blocktime, snapshot_id
         `);
 
     this.logger.log('Msol holder history fetched', {
@@ -195,16 +225,16 @@ export class SnapshotService {
   ): Promise<VeMNDEBalanceHistoryItemDto[]> {
     const range = this.resolveHistoryRange(startDate, endDate);
     this.logger.log(
-      `Fetching getVeMNDEBalanceHistory for owner ${owner} [${range.startDate},${range.endDate}]`,
+      `Fetching getVeMNDEBalanceHistory for owner ${owner} [${range.startDate},${range.endBefore})`,
     );
     const result = await this.rdsService.pool.any(sql.unsafe`
             SELECT vemnde_holders.amount, snapshots.slot, snapshots.created_at, snapshots.blocktime
             FROM vemnde_holders
             INNER JOIN snapshots USING (snapshot_id)
             WHERE snapshots.blocktime >= ${range.startDate}
-              AND snapshots.blocktime <= ${range.endDate}
+              AND snapshots.blocktime < ${range.endBefore}
               AND vemnde_holders.owner = ${owner}
-            ORDER BY snapshots.blocktime
+            ORDER BY snapshots.blocktime, snapshots.snapshot_id
         `);
 
     this.logger.log('VeMNDE holder history fetched', {
@@ -219,12 +249,21 @@ export class SnapshotService {
     }));
   }
 
-  async storeSnapshot(slot: number, records: SnapshotRecords): Promise<number> {
+  async storeSnapshot(
+    slot: number,
+    records: SnapshotRecords,
+    mSolTotals: MSolTotals,
+  ): Promise<number> {
     // getBlockTime can take ~100 RPC round trips, too long to idle inside the transaction
     const blockTime = await this.solanaService.getBlockTime(slot);
 
     return await this.rdsService.pool.transaction(async (db) => {
-      const snapshotId = await this.createSnapshot(db, slot, blockTime);
+      const snapshotId = await this.createSnapshot(
+        db,
+        slot,
+        blockTime,
+        mSolTotals,
+      );
       await this.storeSnapshotNativeStakerRecords(
         db,
         snapshotId,
@@ -245,9 +284,10 @@ export class SnapshotService {
     db: CommonQueryMethods,
     slot: number,
     blockTime: Date,
+    { mSolParsedAmount, mSolSupply }: MSolTotals,
   ): Promise<number> {
     const { snapshot_id: snapshotId } = await db.one(
-      sql.unsafe`INSERT INTO snapshots (slot, blocktime) VALUES (${slot}, ${blockTime.toISOString()}) RETURNING snapshot_id`,
+      sql.unsafe`INSERT INTO snapshots (slot, blocktime, msol_parsed_amount, msol_supply) VALUES (${slot}, ${blockTime.toISOString()}, ${mSolParsedAmount}, ${mSolSupply}) RETURNING snapshot_id`,
     );
 
     return snapshotId;

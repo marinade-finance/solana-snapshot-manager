@@ -17,6 +17,10 @@ type SnapshotRecord = {
   source: Source;
   isVault: boolean;
 };
+export type MSolTotals = {
+  mSolParsedAmount: string;
+  mSolSupply: string;
+};
 type VeMNDESnapshotRecord = { pubkey: string; amount: string };
 type NativeStakeSnapshotRecord = { pubkey: string; amount: string };
 
@@ -67,7 +71,10 @@ export class ParserService {
       vsr_registrar_data: vsr_registrar_info.data.toString('base64'),
     };
   }
-  async *parse(sqlite: string, slot: number): AsyncGenerator<SnapshotRecord> {
+  async *parse(
+    sqlite: string,
+    slot: number,
+  ): AsyncGenerator<SnapshotRecord, MSolTotals> {
     this.logger.log('Opening the SQLite DB', { sqlite });
     const db = SQLite(sqlite, { readonly: true });
 
@@ -96,13 +103,18 @@ export class ParserService {
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    this.logger.log('Finished parsing', {
+    const totals: MSolTotals = {
       mSolParsedAmount: mlamportsToMsol(mSolParsedAmount),
       mSolSupply: mlamportsToMsol(mSolSupply),
+    };
+    this.logger.log('Finished parsing', {
+      ...totals,
       missingMSol: mlamportsToMsol(mSolSupply.sub(mSolParsedAmount)),
     });
 
     db.close();
+
+    return totals;
   }
 
   async *parseVeMNDE(sqlite: string): AsyncGenerator<VeMNDESnapshotRecord> {
