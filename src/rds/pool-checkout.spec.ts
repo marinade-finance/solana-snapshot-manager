@@ -122,6 +122,40 @@ describeWithPostgres('createCheckoutLimitedPool', () => {
     await expect(pool.oneFirst(sql.unsafe`SELECT 1`)).resolves.toBe(1);
   });
 
+  it('gates a transaction like any call and frees its slot on rollback', async () => {
+    const pool = await limitedPool(1);
+    const committed = pool.transaction(async (tx) => {
+      await tx.query(sql.unsafe`INSERT INTO pool_checkout_probe VALUES (1)`);
+      await tx.query(sql.unsafe`SELECT pg_sleep(0.1)`);
+      await tx.query(sql.unsafe`INSERT INTO pool_checkout_probe VALUES (2)`);
+    });
+    const queued = pool.oneFirst(
+      sql.unsafe`SELECT count(*)::int FROM pool_checkout_probe`,
+    );
+    await committed;
+    expect(await queued).toBe(2);
+
+    const holder = busy(pool, 0.6);
+    await expect(
+      pool.transaction(async (tx) => {
+        await tx.query(sql.unsafe`INSERT INTO pool_checkout_probe VALUES (9)`);
+      }),
+    ).rejects.toBeInstanceOf(PoolCheckoutTimeoutError);
+    await holder;
+
+    await expect(
+      pool.transaction(async (tx) => {
+        await tx.query(sql.unsafe`INSERT INTO pool_checkout_probe VALUES (3)`);
+        throw new Error('rollback');
+      }),
+    ).rejects.toThrow('rollback');
+    expect(
+      await pool.oneFirst(
+        sql.unsafe`SELECT count(*)::int FROM pool_checkout_probe`,
+      ),
+    ).toBe(2);
+  });
+
   it('lets a call that got its connection in time run past the deadline', async () => {
     const pool = await limitedPool(1);
     await expect(busy(pool, (timeoutMs * 2) / 1_000)).resolves.toBeDefined();
