@@ -1,8 +1,17 @@
-import { DatabasePool, QuerySqlToken, createMockQueryResult } from 'slonik';
+import { DatabasePool, QuerySqlToken } from 'slonik';
 import { RdsService } from 'src/rds/rds.service';
 import { SolanaService } from 'src/solana/solana.service';
 import { SnapshotRecords, SnapshotService } from './snapshot.service';
 import { MSolTotals } from './parser/parser.service';
+
+const emptyQueryResult = {
+  command: 'INSERT',
+  fields: [],
+  notices: [],
+  rowCount: 0,
+  rows: [],
+  type: 'QueryResult',
+} as const;
 
 const records: SnapshotRecords = {
   holders: [
@@ -52,7 +61,7 @@ const serviceRecording = (
       if (table === failOn) {
         throw new Error(`insert into ${table} failed`);
       }
-      return createMockQueryResult([]);
+      return emptyQueryResult;
     },
   };
 

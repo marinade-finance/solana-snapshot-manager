@@ -1,8 +1,17 @@
 import { PublicKey } from '@solana/web3.js';
-import { DatabasePool, QuerySqlToken, createMockQueryResult } from 'slonik';
+import { DatabasePool, QuerySqlToken } from 'slonik';
 import { RdsService } from 'src/rds/rds.service';
 import { SolanaService } from 'src/solana/solana.service';
 import { VotesService } from './votes.service';
+
+const emptyQueryResult = {
+  command: 'INSERT',
+  fields: [],
+  notices: [],
+  rowCount: 0,
+  rows: [],
+  type: 'QueryResult',
+} as const;
 
 const events: string[] = [];
 
@@ -42,7 +51,7 @@ const serviceRecording = (failOn?: string) => {
       if (table === failOn) {
         throw new Error(`insert into ${table} failed`);
       }
-      return createMockQueryResult([]);
+      return emptyQueryResult;
     },
   };
 

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommonQueryMethods, sql } from 'slonik';
+import { CommonQueryMethods } from 'slonik';
+import { sql } from 'src/rds/sql';
 import { batches, RdsService } from 'src/rds/rds.service';
 import {
   MsolBalanceDto,

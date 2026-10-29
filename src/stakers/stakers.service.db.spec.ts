@@ -1,4 +1,5 @@
-import { DatabasePool, createPool, sql } from 'slonik';
+import { DatabasePool, createPool } from 'slonik';
+import { sql } from 'src/rds/sql';
 import { RdsService, typeParsers } from 'src/rds/rds.service';
 import { StakersService } from './stakers.service';
 

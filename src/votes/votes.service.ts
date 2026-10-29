@@ -7,7 +7,8 @@ import {
 import { SolanaService } from 'src/solana/solana.service';
 import { Keypair } from '@solana/web3.js';
 import { batches, RdsService } from 'src/rds/rds.service';
-import { CommonQueryMethods, sql } from 'slonik';
+import { CommonQueryMethods } from 'slonik';
+import { sql } from 'src/rds/sql';
 import {
   MSolVoteRecordDto,
   MSolVoteRecordsDto,
