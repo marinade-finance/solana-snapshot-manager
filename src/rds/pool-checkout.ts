@@ -6,7 +6,6 @@ import {
   Interceptor,
 } from 'slonik';
 
-// Pool methods that check out a connection for their duration.
 const CHECKOUT_METHODS = new Set<PropertyKey>([
   'any',
   'anyFirst',
@@ -36,8 +35,7 @@ type Waiter = { grant: () => void };
 
 const checkouts = new AsyncLocalStorage<Checkout>();
 
-// Runs when slonik hands a connection to a pool call, before its query. A
-// call whose caller already gave up must not run late, so refuse it here.
+// refuses a connection handed to a call whose caller already timed out
 const checkoutDeadline: Interceptor = {
   name: 'checkout-deadline',
   afterPoolConnection: () => {
@@ -52,15 +50,8 @@ const checkoutDeadline: Interceptor = {
   },
 };
 
-/**
- * slonik >= 49 queues checkouts without a deadline once every connection is
- * busy; slonik 33 (pg-pool) rejected them after `connectionTimeout`. Admit at
- * most `maxPoolSize` calls at a time so slonik rarely queues, and reject a
- * call that has no connection after `timeoutMs`. A rejected call never runs:
- * it leaves the gate's queue, or, if it already waits inside slonik (slonik
- * returns a connection to the pool only after the call that used it has
- * resolved), the interceptor refuses the connection it is eventually given.
- */
+// slonik 49 queues checkouts without a deadline; cap concurrent calls and fail
+// a call with no connection after timeoutMs, so it never runs late
 export const createCheckoutLimitedPool = async (
   connectionUri: string,
   configuration: ClientConfigurationInput & { maxPoolSize: number },
@@ -97,7 +88,6 @@ export const createCheckoutLimitedPool = async (
   const release = (): void => {
     const next = waiters.shift();
     if (next) {
-      // the slot passes straight to the next waiter
       next.grant();
     } else {
       active--;
@@ -118,8 +108,6 @@ export const createCheckoutLimitedPool = async (
           expired: false,
           timeoutMs,
         };
-        // the slot stays taken until slonik is done with the call, even
-        // after its caller has been rejected
         const call = checkouts
           .run(checkout, () =>
             (value as (...a: unknown[]) => Promise<unknown>).apply(

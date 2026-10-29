@@ -80,8 +80,6 @@ describeWithPostgres('createCheckoutLimitedPool', () => {
   });
 
   it('times out a call queued inside slonik while a connection is released', async () => {
-    // slonik resets a connection after the call that used it has resolved,
-    // so the gate frees its slot first and the next call queues in slonik
     const pool = await limitedPool(1, () => sleep(1_000));
     await pool.query(sql.unsafe`SELECT 1`);
 

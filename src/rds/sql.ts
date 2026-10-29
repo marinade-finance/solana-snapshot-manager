@@ -1,8 +1,6 @@
 import { QuerySqlToken, ValueExpression, sql as slonikSql } from 'slonik';
 
-// Structural stand-in for a schema whose rows are `any`. slonik 49 types the
-// rows of `sql.unsafe` (no validation) as `unknown`; the queries here read
-// columns straight off untyped rows, as they did on slonik 33.
+// slonik 49 types unvalidated rows as unknown; keep them any as on slonik 33
 type AnyRowSchema = {
   readonly '~standard': {
     readonly version: 1;

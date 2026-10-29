@@ -16,7 +16,6 @@ export const batches = function* <T>(items: T[], size: number): Generator<T[]> {
 
 export const PSQL_POOL_PROVIDER = 'PSQL_POOL_PROVIDER';
 const MAX_POOL_SIZE = 10;
-// what pg-pool's connectionTimeoutMillis bounded a checkout to under slonik 33
 const CHECKOUT_TIMEOUT_MS = 5_000;
 export const typeParsers = [
   ...createTypeParserPreset(),
