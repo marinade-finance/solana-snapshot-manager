@@ -1,4 +1,10 @@
-import { DatabasePool } from 'slonik';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import {
+  ClientConfigurationInput,
+  createPool,
+  DatabasePool,
+  Interceptor,
+} from 'slonik';
 
 // Pool methods that check out a connection for their duration.
 const CHECKOUT_METHODS = new Set<PropertyKey>([
@@ -25,24 +31,50 @@ export class PoolCheckoutTimeoutError extends Error {
   }
 }
 
+type Checkout = { connected: boolean; expired: boolean; timeoutMs: number };
 type Waiter = { grant: () => void };
+
+const checkouts = new AsyncLocalStorage<Checkout>();
+
+// Runs when slonik hands a connection to a pool call, before its query. A
+// call whose caller already gave up must not run late, so refuse it here.
+const checkoutDeadline: Interceptor = {
+  name: 'checkout-deadline',
+  afterPoolConnection: () => {
+    const checkout = checkouts.getStore();
+    if (checkout?.expired) {
+      throw new PoolCheckoutTimeoutError(checkout.timeoutMs);
+    }
+    if (checkout) {
+      checkout.connected = true;
+    }
+    return null;
+  },
+};
 
 /**
  * slonik >= 49 queues checkouts without a deadline once every connection is
  * busy; slonik 33 (pg-pool) rejected them after `connectionTimeout`. Admit at
- * most `maxPoolSize` calls at a time so slonik never queues, and reject a call
- * still waiting after `timeoutMs`. A rejected call is dropped from the queue,
- * so its query never runs later.
+ * most `maxPoolSize` calls at a time so slonik rarely queues, and reject a
+ * call that has no connection after `timeoutMs`. A rejected call never runs:
+ * it leaves the gate's queue, or, if it already waits inside slonik (slonik
+ * returns a connection to the pool only after the call that used it has
+ * resolved), the interceptor refuses the connection it is eventually given.
  */
-export const withCheckoutTimeout = (
-  pool: DatabasePool,
-  maxPoolSize: number,
+export const createCheckoutLimitedPool = async (
+  connectionUri: string,
+  configuration: ClientConfigurationInput & { maxPoolSize: number },
   timeoutMs: number,
-): DatabasePool => {
+): Promise<DatabasePool> => {
+  const pool = await createPool(connectionUri, {
+    ...configuration,
+    interceptors: [checkoutDeadline, ...(configuration.interceptors ?? [])],
+  });
+  const maxPoolSize = configuration.maxPoolSize;
   let active = 0;
   const waiters: Waiter[] = [];
 
-  const acquire = (): Promise<void> => {
+  const acquire = (waitMs: number): Promise<void> => {
     if (active < maxPoolSize) {
       active++;
       return Promise.resolve();
@@ -57,7 +89,7 @@ export const withCheckoutTimeout = (
       const timer = setTimeout(() => {
         waiters.splice(waiters.indexOf(waiter), 1);
         reject(new PoolCheckoutTimeoutError(timeoutMs));
-      }, timeoutMs);
+      }, waitMs);
       waiters.push(waiter);
     });
   };
@@ -79,15 +111,44 @@ export const withCheckoutTimeout = (
         return value;
       }
       return async (...args: unknown[]): Promise<unknown> => {
-        await acquire();
-        try {
-          return await (value as (...a: unknown[]) => Promise<unknown>).apply(
-            target,
-            args,
+        const deadline = Date.now() + timeoutMs;
+        await acquire(timeoutMs);
+        const checkout: Checkout = {
+          connected: false,
+          expired: false,
+          timeoutMs,
+        };
+        // the slot stays taken until slonik is done with the call, even
+        // after its caller has been rejected
+        const call = checkouts
+          .run(checkout, () =>
+            (value as (...a: unknown[]) => Promise<unknown>).apply(
+              target,
+              args,
+            ),
+          )
+          .finally(release);
+        return await new Promise((resolve, reject) => {
+          const timer = setTimeout(
+            () => {
+              if (!checkout.connected) {
+                checkout.expired = true;
+                reject(new PoolCheckoutTimeoutError(timeoutMs));
+              }
+            },
+            Math.max(0, deadline - Date.now()),
           );
-        } finally {
-          release();
-        }
+          call.then(
+            (result) => {
+              clearTimeout(timer);
+              resolve(result);
+            },
+            (error: unknown) => {
+              clearTimeout(timer);
+              reject(error);
+            },
+          );
+        });
       };
     },
   });

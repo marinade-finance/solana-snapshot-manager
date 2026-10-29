@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { createPool, createTypeParserPreset, DatabasePool } from 'slonik';
+import { createTypeParserPreset, DatabasePool } from 'slonik';
 import { ConfigService } from 'src/config/config.service';
 import fs from 'fs';
-import { withCheckoutTimeout } from './pool-checkout';
+import { createCheckoutLimitedPool } from './pool-checkout';
 
 export const batches = function* <T>(items: T[], size: number): Generator<T[]> {
   if (size <= 0) {
@@ -52,13 +52,11 @@ export const poolFactory = {
         }
       : undefined;
 
-    const pool = await createPool(configService.postgresUrl, {
-      maxPoolSize: MAX_POOL_SIZE,
-      ssl,
-      typeParsers,
-      ...statementTimeout,
-    });
-    return withCheckoutTimeout(pool, MAX_POOL_SIZE, CHECKOUT_TIMEOUT_MS);
+    return await createCheckoutLimitedPool(
+      configService.postgresUrl,
+      { maxPoolSize: MAX_POOL_SIZE, ssl, typeParsers, ...statementTimeout },
+      CHECKOUT_TIMEOUT_MS,
+    );
   },
   inject: [ConfigService],
 };
