@@ -1,12 +1,12 @@
 allowBuilds:
   '@nestjs/core': true
+  '@parcel/watcher': false
   '@scarf/scarf': true
   better-sqlite3: true
   bufferutil: true
+  unrs-resolver: false
   utf-8-validate: true
 overrides:
-  'multer': '^2.4.0'
-  'rpc-websockets@^9': '9.3.8'
-  'toml@^3': '^4.3.0'
+  'toml@^3': '^5.0.1'
   'tmp@^0.0.33': '^0.2.7'
   'uuid@<11.1.1': '^11.1.1'

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { sql } from 'slonik';
+import { sql } from 'src/rds/sql';
 import { RdsService } from 'src/rds/rds.service';
 import {
   NativeStakeBalanceDto,
