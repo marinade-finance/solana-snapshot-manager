@@ -30,7 +30,12 @@ export class PoolCheckoutTimeoutError extends Error {
   }
 }
 
-type Checkout = { connected: boolean; expired: boolean; timeoutMs: number };
+type Checkout = {
+  connected: boolean;
+  expired: boolean;
+  deadline: number;
+  timeoutMs: number;
+};
 type Waiter = { grant: () => void };
 
 const checkouts = new AsyncLocalStorage<Checkout>();
@@ -40,7 +45,7 @@ const checkoutDeadline: Interceptor = {
   name: 'checkout-deadline',
   afterPoolConnection: () => {
     const checkout = checkouts.getStore();
-    if (checkout?.expired) {
+    if (checkout && (checkout.expired || Date.now() >= checkout.deadline)) {
       throw new PoolCheckoutTimeoutError(checkout.timeoutMs);
     }
     if (checkout) {
@@ -103,9 +108,14 @@ export const createCheckoutLimitedPool = async (
       return async (...args: unknown[]): Promise<unknown> => {
         const deadline = Date.now() + timeoutMs;
         await acquire(timeoutMs);
+        if (Date.now() >= deadline) {
+          release();
+          throw new PoolCheckoutTimeoutError(timeoutMs);
+        }
         const checkout: Checkout = {
           connected: false,
           expired: false,
+          deadline,
           timeoutMs,
         };
         const call = checkouts

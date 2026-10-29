@@ -93,6 +93,21 @@ describeWithPostgres('createCheckoutLimitedPool', () => {
     expect(await probeRows()).toBe(0);
   });
 
+  it('counts the gate wait against the same deadline', async () => {
+    const pool = await limitedPool(1, () => sleep(1_000));
+    const holder = busy(pool, 0.2);
+
+    const started = Date.now();
+    await expect(
+      pool.query(sql.unsafe`INSERT INTO pool_checkout_probe VALUES (1)`),
+    ).rejects.toBeInstanceOf(PoolCheckoutTimeoutError);
+    expect(Date.now() - started).toBeLessThan(timeoutMs + 150);
+
+    await holder;
+    await sleep(1_500);
+    expect(await probeRows()).toBe(0);
+  });
+
   it('lets a call that got its connection in time run past the deadline', async () => {
     const pool = await limitedPool(1);
     await expect(busy(pool, (timeoutMs * 2) / 1_000)).resolves.toBeDefined();
