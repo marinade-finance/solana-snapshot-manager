@@ -108,6 +108,20 @@ describeWithPostgres('createCheckoutLimitedPool', () => {
     expect(await probeRows()).toBe(0);
   });
 
+  it('runs every call queued in the gate once a slot frees', async () => {
+    const pool = await limitedPool(2);
+    const running = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        pool.oneFirst(
+          sql.unsafe`SELECT count(*)::int FROM pg_stat_activity, pg_sleep(0.05)
+            WHERE query LIKE '%pool_gate_probe%' AND state = 'active'`,
+        ),
+      ),
+    );
+    expect(Math.max(...running.map(Number))).toBeLessThanOrEqual(2);
+    await expect(pool.oneFirst(sql.unsafe`SELECT 1`)).resolves.toBe(1);
+  });
+
   it('lets a call that got its connection in time run past the deadline', async () => {
     const pool = await limitedPool(1);
     await expect(busy(pool, (timeoutMs * 2) / 1_000)).resolves.toBeDefined();
